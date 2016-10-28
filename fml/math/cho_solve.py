@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from fcho_solve import fcho_solve
-from numpy import asarray_chkfinite
+from numpy import zeros
 
 def cho_solve(A, y):
     """ Solves [A x = y] for x using a Cholesky decomposition
@@ -45,7 +45,7 @@ def cho_solve(A, y):
 
     n = A.shape[0]
 
-    x = np.zeros((n))
+    x = zeros((n))
     ffcho_solve(A,y,x)
 
     return x
