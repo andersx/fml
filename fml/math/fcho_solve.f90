@@ -11,7 +11,13 @@ subroutine fcho_solve(A,y,x)
     na = size(A, dim=1)
 
     call dpotrf("U", na, A, na, info)
+    if (info > 0) then
+        write (*,*) "WARNING: Cholesky decomposition DPOTRF() exited with error code:", info
+    endif
     call dpotrs("U", na, 1, A, na, y, na, info)
+    if (info > 0) then
+        write (*,*) "WARNING: Cholesky solve DPOTRS() exited with error code:", info
+    endif
 
     x(:na) = y(:na)
 

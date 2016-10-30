@@ -1,7 +1,7 @@
 OBJECTS = fml/math/fcho_solve.so fml/kernels/fkernels.so
 
 # Flags for Ifort and MKL
-IFORT_COMPILER_FLAGS = --opt='-xHost -O3' --fcompiler=intelem --f90flags='-qopenmp -I${MKLROOT}/include'  
+IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funrool-loops -fp-model source -opt-prefetch -qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
 IFORT_LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
 IFORT_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 
@@ -36,3 +36,4 @@ clean:
 	rm -f fml/math/*.pyc
 	rm -f fml/kernels/*.so
 	rm -f fml/kernels/*.pyc
+	rm -f pgopti.dpi pgopti.dpi.lock *.dyn

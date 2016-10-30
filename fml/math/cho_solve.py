@@ -46,6 +46,6 @@ def cho_solve(A, y):
     n = A.shape[0]
 
     x = zeros((n))
-    ffcho_solve(A,y,x)
+    fcho_solve(A,y,x)
 
     return x

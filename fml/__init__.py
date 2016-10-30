@@ -1,3 +1,5 @@
+from fml import *
+
 __author__ = "Anders S. Christensen"
 __copyright__ = "Copyright 2016"
 __credits__ = ["Anders S. Christensen (2016) https://github.com/andersx/fml"]

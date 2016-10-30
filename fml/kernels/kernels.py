@@ -24,6 +24,7 @@ from numpy import empty, asfortranarray, ascontiguousarray
 
 from fkernels import fgaussian_kernel
 from fkernels import flaplacian_kernel
+# from fkernels import flaplacian_kernel_simd
 
 def laplacian_kernel(A, B, sigma):
     """ Calculates the Laplacian kernel matrix K, where K_ij:
@@ -47,16 +48,13 @@ def laplacian_kernel(A, B, sigma):
         K -- The Laplacian kernel matrix.
     """
 
-    na = A.shape[0]
-    nb = B.shape[0]
+    na = A.shape[1]
+    nb = B.shape[1]
 
     K = empty((na, nb), order='F')
-    A = asfortranarray(a).T
-    B = asfortranarray(b).T
+    flaplacian_kernel(A, na, B, nb, K, sigma)
 
-    flaplacian_kernel(A, na, B, nb, K, sigma_in)
-
-    return ascontiguousarray(K)
+    return K
 
 
 def gaussian_kernel(A, B, sigma):
@@ -81,13 +79,11 @@ def gaussian_kernel(A, B, sigma):
         K -- The Gaussian kernel matrix.
     """
 
-    na = A.shape[0]
-    nb = B.shape[0]
+    na = A.shape[1]
+    nb = B.shape[1]
 
     K = empty((na, nb), order='F')
-    A = asfortranarray(a).T
-    B = asfortranarray(b).T
 
     fgaussian_kernel(A, na, B, nb, K, sigma)
 
-    return ascontiguousarray(K)
+    return K
