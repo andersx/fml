@@ -27,7 +27,7 @@ fml/math/fcho_solve.so: fml/math/fcho_solve.f90
 	mv fcho_solve.so fml/math/
 
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
-	f2py -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	f2py -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
 	mv fkernels.so fml/kernels/
 
 clean:

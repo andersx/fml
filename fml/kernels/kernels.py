@@ -20,11 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from numpy import empty, asfortranarray, ascontiguousarray
+from numpy import empty, asfortranarray, ascontiguousarray, zeros
 
 from fkernels import fgaussian_kernel
 from fkernels import flaplacian_kernel
-# from fkernels import flaplacian_kernel_simd
+from fkernels import fget_alpha
+
+def get_alpha(Q, N, Y, sigma):
+
+    na = sum(N)
+    alpha = zeros((na))
+
+    fget_alpha(Q, N, Y, sigma, alpha)
+
+    return alpha
 
 def laplacian_kernel(A, B, sigma):
     """ Calculates the Laplacian kernel matrix K, where K_ij:
