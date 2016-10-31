@@ -78,9 +78,10 @@ subroutine fget_alpha(q, n, y, sigma, alpha)
     integer :: na, nm
 
     integer :: i, j, k, k_start, k_end
-    integer :: lwork, info
-    integer, allocatable, dimension(:) :: ipiv
-    integer, allocatable, dimension(:) :: work
+    integer :: info
+    ! integer :: lwork
+    ! integer, allocatable, dimension(:) :: ipiv
+    ! integer, allocatable, dimension(:) :: work
     double precision, allocatable, dimension(:) :: ltcly
 
     double precision :: inv_sigma
@@ -132,26 +133,38 @@ subroutine fget_alpha(q, n, y, sigma, alpha)
     enddo 
 !$OMP END PARALLEL DO
 
-    allocate(ipiv(nm))
+    ! allocate(ipiv(nm))
 
-    call dgetrf(nm, nm, ltcl, nm, ipiv, info)
+    ! call dgetrf(nm, nm, ltcl, nm, ipiv, info)
+    ! if (info > 0) then
+    !     write (*,*) "WARNING: LU decomposition DGETRF() exited with error code:", info
+    ! endif
+
+    ! lwork = nm * nm
+    ! allocate(work(lwork))
+    ! call dgetri(nm, ltcl, nm, ipiv, work, lwork, info )
+    ! if (info > 0) then
+    !     write (*,*) "WARNING: LU inversion DGETRI() exited with error code:", info
+    ! endif
+
+    ! deallocate(ipiv)
+    ! deallocate(work)
+
+    call dpotrf("U",nm, ltcl, nm, info)
     if (info > 0) then
-        write (*,*) "WARNING: L -decomposition DGETRF() exited with error code:", info
+        write (*,*) "WARNING: Cholesky decomposition DPOTRF() exited with error code:", info
+    endif
+    call dpotri("U", nm, ltcl, nm, info )
+    if (info > 0) then
+        write (*,*) "WARNING: Cholesky Inversion DPOTRI() exited with error code:", info
     endif
 
-    lwork = nm * nm
-    allocate(work(lwork))
-    call dgetri(nm, ltcl, nm, ipiv, work, lwork, info )
-    if (info > 0) then
-        write (*,*) "WARNING: Cholesky inversion DPOTRI() exited with error code:", info
-    endif
-
-    deallocate(ipiv)
-    deallocate(work)
 
     allocate(ltcly(nm))
     ltcly = 0.0d0
-    call dgemv("N", nm, nm, 1.0d0, ltcl, nm, y, 1, 0.0d0, ltcly, 1)
+
+    ! call dgemv("N", nm, nm, 1.0d0, ltcl, nm, y, 1, 0.0d0, ltcly, 1)
+    call dsymv("U", nm, 1.0d0, ltcl, nm, y, 1, 0.0d0, ltcly, 1)
 
     deallocate(ltcl)
 
