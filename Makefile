@@ -1,7 +1,12 @@
-OBJECTS = fml/math/fcho_solve.so fml/kernels/fkernels.so
+OBJECTS = \
+			fml/math/fcho_solve.so \
+			fml/math/fdistance.so \
+			fml/kernels/fkernels.so \
+			fml/representations/frepresentations.so
 
 # Flags for Ifort and MKL
-IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funrool-loops -fp-model source -opt-prefetch -qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
+IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-warn unused -xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funroll-loops -fp-model source -qopt-prefetch'
+	#-qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
 IFORT_LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
 IFORT_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 
@@ -26,14 +31,23 @@ fml/math/fcho_solve.so: fml/math/fcho_solve.f90
 	f2py -c -m fcho_solve fml/math/fcho_solve.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
 	mv fcho_solve.so fml/math/
 
+fml/math/fdistance.so: fml/math/fdistance.f90
+	f2py -c -m fdistance fml/math/fdistance.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	mv fdistance.so fml/math/
+
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
 	f2py -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
 	mv fkernels.so fml/kernels/
 
+fml/representations/frepresentations.so: fml/representations/frepresentations.f90
+	f2py -c -m frepresentations fml/representations/frepresentations.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	mv frepresentations.so fml/representations/
 clean:
 	rm -f fml/*.pyc
 	rm -f fml/math/*.so
 	rm -f fml/math/*.pyc
 	rm -f fml/kernels/*.so
 	rm -f fml/kernels/*.pyc
+	rm -f fml/representations/*.so
+	rm -f fml/representations/*.pyc
 	rm -f pgopti.dpi pgopti.dpi.lock *.dyn
