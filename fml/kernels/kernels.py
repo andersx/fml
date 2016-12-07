@@ -1,17 +1,17 @@
 # MIT License
-# 
+#
 # Copyright (c) 2016 Anders Steen Christensen
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,13 +25,43 @@ from numpy import empty, asfortranarray, ascontiguousarray, zeros
 from fkernels import fgaussian_kernel
 from fkernels import flaplacian_kernel
 from fkernels import fget_alpha
+from fkernels import fget_alpha_from_distance
+from fkernels import fget_prediction
+from fkernels import fget_prediction_from_distance
+from fkernels import fmanhattan_distance
 
-def get_alpha(Q, N, Y, sigma):
+def get_prediction(Q, Q2, N2, alpha, sigma):
+
+    na = len(N2)
+    Y = zeros((na))
+
+    fget_prediction(Q, Q2, N2, alpha, sigma, Y)
+
+    return Y
+
+def get_prediction_from_distance(D2, N2, alpha, sigma):
+
+    na = len(N2)
+    Y = zeros((na))
+
+    fget_prediction_from_distance(D2, N2, alpha, sigma, Y)
+
+    return Y
+
+def get_alpha(Q, N, Y, sigma, llambda):
 
     na = sum(N)
     alpha = zeros((na))
 
-    fget_alpha(Q, N, Y, sigma, alpha)
+    fget_alpha(Q, N, Y, sigma, llambda, alpha)
+
+    return alpha
+def get_alpha_from_distance(D, N, Y, sigma, llambda):
+
+    na = sum(N)
+    alpha = zeros((na))
+
+    fget_alpha_from_distance(D, N, Y, sigma, llambda, alpha)
 
     return alpha
 
@@ -43,7 +73,7 @@ def laplacian_kernel(A, B, sigma):
         Where A_i and B_j are descriptor vectors.
 
         K is calculated using an OpenMP parallel Fortran routine.
-        
+
         NOTE: A and B need not be input as Fortran contiguous arrays.
 
         Arguments:
@@ -74,7 +104,7 @@ def gaussian_kernel(A, B, sigma):
         Where A_i and B_j are descriptor vectors.
 
         K is calculated using an OpenMP parallel Fortran routine.
-        
+
         NOTE: A and B need not be input as Fortran contiguous arrays.
 
         Arguments:
@@ -94,5 +124,36 @@ def gaussian_kernel(A, B, sigma):
     K = empty((na, nb), order='F')
 
     fgaussian_kernel(A, na, B, nb, K, sigma)
+
+    return K
+
+
+def manhattan_distance(A, B,):
+    """ Calculates the Laplacian kernel matrix K, where K_ij:
+
+            K_ij = exp(-1 * sigma**(-1) * || A_i - B_j ||_1)
+
+        Where A_i and B_j are descriptor vectors.
+
+        K is calculated using an OpenMP parallel Fortran routine.
+
+        NOTE: A and B need not be input as Fortran contiguous arrays.
+
+        Arguments:
+        ==============
+        A -- np.array of np.array of descriptors.
+        B -- np.array of np.array of descriptors.
+        sigma -- The value of sigma in the kernel matrix.
+
+        Returns:
+        ==============
+        K -- The Laplacian kernel matrix.
+    """
+
+    na = A.shape[1]
+    nb = B.shape[1]
+
+    K = empty((na, nb), order='F')
+    fmanhattan_distance(A, na, B, nb, K)
 
     return K

@@ -29,19 +29,19 @@ all: $(OBJECTS)
 
 fml/math/fcho_solve.so: fml/math/fcho_solve.f90
 	f2py -c -m fcho_solve fml/math/fcho_solve.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
-	mv fcho_solve.so fml/math/
+	mv fcho_solve*.so fml/math/fcho_solve.so
 
 fml/math/fdistance.so: fml/math/fdistance.f90
 	f2py -c -m fdistance fml/math/fdistance.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
-	mv fdistance.so fml/math/
+	mv fdistance*.so fml/math/fdistance.so
 
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
 	f2py -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
-	mv fkernels.so fml/kernels/
+	mv fkernels*.so fml/kernels/fkernels.so
 
 fml/representations/frepresentations.so: fml/representations/frepresentations.f90
 	f2py -c -m frepresentations fml/representations/frepresentations.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
-	mv frepresentations.so fml/representations/
+	mv frepresentations*.so fml/representations/frepresentations.so
 clean:
 	rm -f fml/*.pyc
 	rm -f fml/math/*.so
