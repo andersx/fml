@@ -1,4 +1,3 @@
-
 module funcs
 
 contains
@@ -37,9 +36,7 @@ function dist(x1, x2, w1, w2) result(a)
 
 end function dist
 
-! def _dist(x1,x2,w1,w2):
-!     return math.exp(-((x1-x2)**2)/(4*w1**2))*(1 - math.sin(np.pi * x1/(2 * w2)))*(1 - math.sin(np.pi * x2/(2 * w2)))
-! 
+
 function m_dist(X1, X2, N1, N2, width, cut_distance, r_width, c_width) result(aadist)
 
     implicit none
@@ -50,13 +47,10 @@ function m_dist(X1, X2, N1, N2, width, cut_distance, r_width, c_width) result(aa
     integer, intent(in) :: N1
     integer, intent(in) :: N2
 
-    double precision, intent(in) :: width 
+    double precision, intent(in) :: width
     double precision, intent(in) :: cut_distance
     double precision, intent(in) :: r_width
     double precision, intent(in) :: c_width
-
-    ! double precision :: stoch_dist
-    ! double precision :: dist
 
     double precision :: aadist
 
@@ -72,39 +66,25 @@ function m_dist(X1, X2, N1, N2, width, cut_distance, r_width, c_width) result(aa
     aadist = 0.0d0
 
     do m_1 = 1, N1
-    ! for m_1 in range(len(X1[0])):
-   
+
         if (X1(1, m_1) > cut_distance) exit
-        ! if X1[0,m_1] > cutDist:
-        !    break
 
         do m_2 = 1, N2
-        ! for m_2 in range(len(X2[0])):
 
-            if (X1(1, m_1) > cut_distance) exit
-
-            ! if X2[0,m_2] > cutDist:
-            !     break
+            if (X2(1, m_2) > cut_distance) exit
 
             if (abs(X2(1,m_2) - X1(1,m_1)) < maxgausdist) then
-            ! if  abs(X2[0,m_2] - X1[0,m_1]) < maxGausDist:
 
                 r_dist = abs(x1(2,m_1) - x2(2,m_2))
                 c_dist = abs(x1(3,m_1) - x2(3,m_2))
-            !     RDist = abs(X1[1,m_1] - X2[1,m_2])
-            !     CDist = abs(X1[2,m_1] - X2[2,m_2])
 
                 d = dist(x1(1,m_1), x2(1,m_2),width,cut_distance)
                 d = d * stoch_dist(r_dist,c_dist,r_width,c_width)
                 aadist = aadist + d * (1.0d0 + x1(4,m_1)*x2(4,m_2) + x1(5,m_1)*x2(5,m_2))
-            !     d = _dist(X1[0,m_1], X2[0,m_2],width,cutDist)
-            !     d = d *_StochDist(RDist,CDist,RWidth,Cwidth)
-            !     AAdist += d * (1 + X1[3,m_1]*X2[3,m_2] + X1[4,m_1]*X2[4,m_2])
 
             end if
         end do
     end do
-
 
 end function m_dist
 
@@ -113,7 +93,7 @@ end module funcs
 subroutine molecular_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
     & cut_distance, r_width, c_width, distance)
 
-    use funcs
+    use funcs, only: m_dist, stoch_dist
 
     implicit none
 
@@ -126,49 +106,144 @@ subroutine molecular_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
     integer, intent(in) :: N1
     integer, intent(in) :: N2
 
-    double precision, intent(in) :: width 
+    double precision, intent(in) :: width
     double precision, intent(in) :: cut_distance
     double precision, intent(in) :: r_width
     double precision, intent(in) :: c_width
 
     double precision, intent(out) :: distance
 
-    ! double precision :: stoch_dist
-    ! double precision :: dist
-    ! double precision :: m_dist
-
     integer :: j_1, j_2
     double precision :: D1, D2
-    
+
     double precision :: dd
+    double precision :: pair
 
     double precision :: rdist
     double precision :: cdist
 
-    distance = 0.0d0
-    ! DistMatrix  = zeros((len(X1), len(X1)))
+    D1 = 0.0d0
 
     do j_1 = 1, N1
-    ! for j_1 in  range(len(X1)):
+        do j_2 = 1, N1
 
-        ! if Z1[j_1,0] == -1:
-        !    break
+            rdist = abs(z1(j_1,1) - z1(j_2,1))
+            CDist = abs(Z1(j_1,2) - Z1(j_2,2))
 
-        rdist = abs(z1(j_1,1) - z1(j_2,1))
-        ! RDist = abs(Z1[j_1,0] - Z1[j_2,0])
+            dd = M_Dist(X1(j_1,:,:),X1(j_2,:,:),n1,n1,width,cut_distance,R_Width,C_width)
+            D1 = D1 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
 
-        CDist = abs(Z1(j_1,2) - Z1(j_2,2))
-        ! CDist = abs(Z1[j_1,1] - Z1[j_2,1])
-
-        dd = M_Dist(X1(j_1,:,:),X1(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
-
-        print *, "fdd", dd
-        dd = dd * stoch_dist(RDist,CDist,R_Width,C_width)
-
-        print *, "fdd", dd
-        distance = distance + dd
-        ! DistMatrix[j_1,j_2] = dd
-
+        enddo
     enddo
 
+    D2 = 0.0d0
+
+    do j_1 = 1, N2
+        do j_2 = 1, N2
+
+            rdist = abs(z2(j_1,1) - z2(j_2,1))
+            CDist = abs(Z2(j_1,2) - Z2(j_2,2))
+
+            dd = M_Dist(X2(j_1,:,:),X2(j_2,:,:),n2,n2,width,cut_distance,R_Width,C_width)
+            D2 = D2 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
+
+        enddo
+    enddo
+
+    pair = 0.0d0
+
+    do j_1 = 1, N1
+        do j_2 = 1, N2
+
+            rdist = abs(z1(j_1,1) - z2(j_2,1))
+            CDist = abs(Z1(j_1,2) - Z2(j_2,2))
+
+            dd = M_Dist(X1(j_1,:,:),X2(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
+            dd = dd * stoch_dist(RDist,CDist,R_Width,C_width)
+            pair = pair + dd
+
+        enddo
+    enddo
+
+    distance = D1 + D2 - 2.0d0 * pair
+
 end subroutine molecular_arad_l2_distance
+
+subroutine atomic_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
+    & cut_distance, r_width, c_width, distance)
+
+    use funcs, only: m_dist, stoch_dist
+
+    implicit none
+
+    double precision, dimension(:,:,:), intent(in) :: X1
+    double precision, dimension(:,:,:), intent(in) :: X2
+
+    integer, dimension(:,:), intent(in) :: Z1
+    integer, dimension(:,:), intent(in) :: Z2
+
+    integer, intent(in) :: N1
+    integer, intent(in) :: N2
+
+    double precision, intent(in) :: width
+    double precision, intent(in) :: cut_distance
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
+
+    double precision, intent(out) :: distance
+
+    integer :: j_1, j_2
+    double precision :: D1, D2
+
+    double precision :: dd
+    double precision :: pair
+
+    double precision :: rdist
+    double precision :: cdist
+
+    D1 = 0.0d0
+
+    do j_1 = 1, N1
+        do j_2 = 1, N1
+
+            rdist = abs(z1(j_1,1) - z1(j_2,1))
+            CDist = abs(Z1(j_1,2) - Z1(j_2,2))
+
+            dd = M_Dist(X1(j_1,:,:),X1(j_2,:,:),n1,n1,width,cut_distance,R_Width,C_width)
+            D1 = D1 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
+
+        enddo
+    enddo
+
+    D2 = 0.0d0
+
+    do j_1 = 1, N2
+        do j_2 = 1, N2
+
+            rdist = abs(z2(j_1,1) - z2(j_2,1))
+            CDist = abs(Z2(j_1,2) - Z2(j_2,2))
+
+            dd = M_Dist(X2(j_1,:,:),X2(j_2,:,:),n2,n2,width,cut_distance,R_Width,C_width)
+            D2 = D2 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
+
+        enddo
+    enddo
+
+    pair = 0.0d0
+
+    do j_1 = 1, N1
+        do j_2 = 1, N2
+
+            rdist = abs(z1(j_1,1) - z2(j_2,1))
+            CDist = abs(Z1(j_1,2) - Z2(j_2,2))
+
+            dd = M_Dist(X1(j_1,:,:),X2(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
+            dd = dd * stoch_dist(RDist,CDist,R_Width,C_width)
+            pair = pair + dd
+
+        enddo
+    enddo
+
+    distance = D1 + D2 - 2.0d0 * pair
+
+end subroutine atomic_arad_l2_distance
