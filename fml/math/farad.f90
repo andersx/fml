@@ -190,10 +190,11 @@ subroutine atomic_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
     double precision, intent(in) :: r_width
     double precision, intent(in) :: c_width
 
-    double precision, intent(out) :: distance
+    double precision, dimension(N1,N2), intent(out) :: distance
 
     integer :: j_1, j_2
-    double precision :: D1, D2
+    double precision, dimension(N1) :: D1
+    double precision, dimension(N2) :: D2
 
     double precision :: dd
     double precision :: pair
@@ -201,35 +202,13 @@ subroutine atomic_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
     double precision :: rdist
     double precision :: cdist
 
-    D1 = 0.0d0
-
     do j_1 = 1, N1
-        do j_2 = 1, N1
-
-            rdist = abs(z1(j_1,1) - z1(j_2,1))
-            CDist = abs(Z1(j_1,2) - Z1(j_2,2))
-
-            dd = M_Dist(X1(j_1,:,:),X1(j_2,:,:),n1,n1,width,cut_distance,R_Width,C_width)
-            D1 = D1 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
-
-        enddo
+            D1(j_1) = M_Dist(X1(j_1,:,:),X1(j_1,:,:),n1,n1,width,cut_distance,R_Width,C_width)
     enddo
-
-    D2 = 0.0d0
 
     do j_1 = 1, N2
-        do j_2 = 1, N2
-
-            rdist = abs(z2(j_1,1) - z2(j_2,1))
-            CDist = abs(Z2(j_1,2) - Z2(j_2,2))
-
-            dd = M_Dist(X2(j_1,:,:),X2(j_2,:,:),n2,n2,width,cut_distance,R_Width,C_width)
-            D2 = D2 + dd * stoch_dist(RDist,CDist,R_Width,C_width)
-
-        enddo
+            D2(j_1) = M_Dist(X2(j_1,:,:),X2(j_1,:,:),n2,n2,width,cut_distance,R_Width,C_width)
     enddo
-
-    pair = 0.0d0
 
     do j_1 = 1, N1
         do j_2 = 1, N2
@@ -239,11 +218,11 @@ subroutine atomic_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
 
             dd = M_Dist(X1(j_1,:,:),X2(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
             dd = dd * stoch_dist(RDist,CDist,R_Width,C_width)
-            pair = pair + dd
+
+            distance(j_1, j_2) = D1(j_1) + D2(j_2) - 2.0d0 * dd
 
         enddo
     enddo
 
-    distance = D1 + D2 - 2.0d0 * pair
 
 end subroutine atomic_arad_l2_distance
