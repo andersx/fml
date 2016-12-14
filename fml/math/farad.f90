@@ -88,7 +88,6 @@ function m_dist(X1, X2, N1, N2, width, cut_distance, r_width, c_width) result(aa
 
 end function m_dist
 
-
 function distl2(X1, X2, Z1, Z2, N1, N2, width, &
     & cut_distance, r_width, c_width) result(D12)
 
@@ -121,13 +120,6 @@ function distl2(X1, X2, Z1, Z2, N1, N2, width, &
 
     double precision, parameter :: pi = 4.0d0 * atan(1.0d0)
 
-    double precision :: dd
-    double precision :: pair
-
-    double precision :: rdist
-    double precision :: cdist
-
-
     inv_cut = pi / (2.0d0 * cut_distance)
     inv_width = 1.0d0 / (4.0d0 * width**2)
     maxgausdist = 8.0d0 * width
@@ -139,44 +131,40 @@ function distl2(X1, X2, Z1, Z2, N1, N2, width, &
     do j_1 = 1, N1
         do j_2 = 1, N2
 
-            ! rdist = abs(z1(j_1,1) - z2(j_2,1))
-            ! CDist = abs(Z1(j_1,2) - Z2(j_2,2))
-
-            ! dd = M_Dist(X1(j_1,:,:),X2(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
-            ! dd = dd * stoch_dist(RDist,CDist,R_Width,C_width)
-            ! d12 = d12 + dd
-
-
-            ! r_dist = abs(z1(j_1,1) - z2(j_2,1))
-            ! c_dist = abs(z1(j_1,2) - z2(j_2,2))
-
-            ! aadist = M_Dist(X1(j_1,:,:),X2(j_2,:,:),n1,n2,width,cut_distance,R_Width,C_width)
-
-            ! d12 = d12 + aadist * stoch_dist(r_dist,c_dist,r_width,c_width)
-
             aadist = 0.0d0
 
             do m_1 = 1, N1
 
+                ! if (X1(1, m_1, j_1) > cut_distance) exit
                 if (X1(j_1, 1,m_1) > cut_distance) exit
 
+                ! sin1 = 1.0d0 - sin(x1(1, m_1, j_1) * inv_cut)
                 sin1 = 1.0d0 - sin(x1(j_1,1,m_1) * inv_cut)
 
                 do m_2 = 1, N2
 
+                    ! if (X2(1, m_2, j_2) > cut_distance) exit
                     if (X2(j_2,1, m_2) > cut_distance) exit
 
+                    ! if (abs(X2(1, m_2, j_2) - X1(1, m_1, j_1)) < maxgausdist) then
                     if (abs(X2(j_2,1,m_2) - X1(j_1,1,m_1)) < maxgausdist) then
 
+                        ! d = exp(-((x1(1, m_1 ,j_1)-x2(1, m_2, j_2))**2) * inv_width ) *  & 
+                        !     & sin1 * (1.0d0 - sin(x2(1, m_2, j_2) * inv_cut))
                         d = exp(-((x1(j_1,1,m_1)-x2(j_2,1,m_2))**2) * inv_width ) *  & 
                             & sin1 * (1.0d0 - sin(x2(j_2,1,m_2) * inv_cut))
 
+                        ! r_dist = abs(x1(2, m_1, j_1) - x2(2,m_2, j_2))
+                        ! c_dist = abs(x1(3, m_1, j_1) - x2(3,m_2, j_2))
                         r_dist = abs(x1(j_1,2,m_1) - x2(j_2,2,m_2))
                         c_dist = abs(x1(j_1,3,m_1) - x2(j_2,3,m_2))
     
+                        ! d = d * (r_width2/(r_width2 + r_dist**2) * c_width2/(c_width2 + c_dist**2))
                         d = d * (r_width2/(r_width2 + r_dist**2) * c_width2/(c_width2 + c_dist**2))
 
 
+                        ! aadist = aadist + d * (1.0d0 + x1(4, m_1, j_1)*x2(4, m_2, j_2) + & 
+                        !     & x1(5, m_1, j_1)*x2(5, m_2, j_2))
                         aadist = aadist + d * (1.0d0 + x1(j_1,4,m_1)*x2(j_2,4,m_2) + & 
                             & x1(j_1,5,m_1)*x2(j_2,5,m_2))
 
@@ -225,45 +213,28 @@ subroutine molecular_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, 
     double precision, dimension(nmol1) :: D11
     double precision, dimension(nmol2) :: D22
 
-    integer :: i, j, j_1, j_2
-
-    double precision :: dd, rdist, cdist
-
-    ! write (*,*) "f90: Z", size(z1, dim=1), size(z1, dim=2), size(z1, dim=3)
-    ! write (*,*) "f90: X", size(x1, dim=1), size(x1, dim=2), size(x1, dim=3)
-    ! write (*,*) "f90: N", size(n1, dim=1)
-    ! write (*,*) "1 X1:", X1(1,2,3,4)
-    ! write (*,*) "2 X1:", X1(2,3,4,5)
-    ! write (*,*) "N1:", N1
-    ! write (*,*) "N2:", N2
-
-    D11(:) = 0.0d0
+    integer :: i, j
 
     do i = 1, nmol1
+        ! D11(i) = distl2(X1(:,:,:,i), X1(:,:,:,i), Z1(i,:,:), Z1(i,:,:), N1(i), N1(i), &
         D11(i) = distl2(X1(i,:,:,:), X1(i,:,:,:), Z1(i,:,:), Z1(i,:,:), N1(i), N1(i), &
             & width, cut_distance, r_width, c_width)
     enddo 
-
-    D22(:) = 0.0d0
     do i = 1, nmol2
+        ! D22(i) = distl2(X2(:,:,:,i), X2(:,:,:,i), Z2(i,:,:), Z2(i,:,:), N2(i), N2(i), &
         D22(i) = distl2(X2(i,:,:,:), X2(i,:,:,:), Z2(i,:,:), Z2(i,:,:), N2(i), N2(i), &
             & width, cut_distance, r_width, c_width)
     enddo
 
-    D12(:,:) = 0.0d0
-
     do j = 1, nmol2
         do i = 1, nmol1
+            ! D12(i,j) = distl2(X1(:,:,:,i), X2(:,:,:,j), Z1(i,:,:), Z2(j,:,:), N1(i), N2(j), &
             D12(i,j) = distl2(X1(i,:,:,:), X2(j,:,:,:), Z1(i,:,:), Z2(j,:,:), N1(i), N2(j), &
                 & width, cut_distance, r_width, c_width)
 
             D12(i,j) = D11(i) + D22(j) - 2.0d0 * D12(i,j)
         enddo
     enddo
-
-    ! write (*,*) "D11:", D11
-    ! write (*,*) "D22:", D22
-    ! write (*,*) "D12:", D12
 
 end subroutine molecular_arad_l2_distance_all
 
