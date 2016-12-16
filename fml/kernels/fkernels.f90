@@ -348,7 +348,7 @@ subroutine fget_alpha(q, n, y, sigma, lambda, alpha)
     implicit none
 
     double precision, dimension(:,:), intent(in) :: q
-    double precision, dimension(:), intent(in) :: n
+    integer, dimension(:), intent(in) :: n
     double precision, dimension(:), intent(in) :: y
     double precision, intent(in) :: lambda
     double precision, intent(in) :: sigma
@@ -449,7 +449,7 @@ subroutine fget_prediction(Q, Q2, N2, alpha, sigma, Y)
 
     double precision, dimension(:,:), intent(in) :: Q
     double precision, dimension(:,:), intent(in) :: Q2
-    double precision, dimension(:), intent(in) :: N2
+    integer, dimension(:), intent(in) :: N2
     double precision, dimension(:), intent(in) :: alpha
     double precision, intent(in) :: sigma
 
@@ -509,7 +509,7 @@ subroutine fget_alpha_from_distance(d, n, y, dgamma, lambda, alpha)
     implicit none
 
     double precision, dimension(:,:), intent(in) :: d
-    double precision, dimension(:), intent(in) :: n
+    integer, dimension(:), intent(in) :: n
     double precision, dimension(:), intent(in) :: y
     double precision, intent(in) :: dgamma
     double precision, intent(in) :: lambda
@@ -613,7 +613,7 @@ subroutine fget_prediction_from_distance(D2, N2, alpha, dgamma, Y)
     implicit none
 
     double precision, dimension(:,:), intent(in) :: D2
-    double precision, dimension(:), intent(in) :: N2
+    nteger, dimension(:), intent(in) :: N2
     double precision, dimension(:), intent(in) :: alpha
     double precision, intent(in) :: dgamma
 
