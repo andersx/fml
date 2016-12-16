@@ -38,7 +38,7 @@ class Molecule:
 
     def generate_coulomb_matrix(self, size=23):
         self.coulomb_matrix = fgenerate_coulomb_matrix(self.nuclear_charges, \
-                self.coordinates, size)
+                self.coordinates, self.natoms, size)
 
     def generate_local_coulomb_matrix(self, calc="all",size=23):
         self.local_coulomb_matrix = fgenerate_local_coulomb_matrix( \

@@ -6,8 +6,8 @@ OBJECTS = \
 			fml/representations/frepresentations.so
 
 # Flags for Ifort and MKL
-IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-warn unused -xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funroll-loops -fp-model source -qopt-prefetch'
-	#-qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
+IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-warn unused -xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funroll-loops -fp-model -qopt-prefetch'
+#-qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
 IFORT_LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
 IFORT_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 

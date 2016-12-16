@@ -25,11 +25,11 @@ subroutine fgenerate_coulomb_matrix(nuclear_charges, coordinates, natoms, nmax, 
         write(*,*) size(coordinates, dim=2), "coordinates, but", &
             & size(nuclear_charges, dim=1), "atom_types!"
         stop
-    else 
+    else
         natoms = size(nuclear_charges, dim=1)
     endif
 
-    ! Allocate temporary     
+    ! Allocate temporary
     allocate(pair_distance_matrix(natoms,natoms))
     allocate(row_norms(natoms))
     allocate(sorted_atoms(natoms))
@@ -67,9 +67,9 @@ subroutine fgenerate_coulomb_matrix(nuclear_charges, coordinates, natoms, nmax, 
         sorted_atoms(natoms - i + 1) = j
         row_norms(j) = huge_double
     enddo
-   
+
     ! Fill coulomb matrix according to sorted row-norms
-    cm = 0.0d0 
+    cm = 0.0d0
     !$OMP PARALLEL DO PRIVATE(idx, i, j)
     do m = 1, natoms
         i = sorted_atoms(m)
@@ -151,7 +151,7 @@ subroutine fgenerate_local_coulomb_matrix(nuclear_charges, coordinates, natoms, 
         sorted_atoms(natoms - i + 1) = j
         row_norms(j) = huge_double
     enddo
-  
+
     do k = 1, natoms
         sorted_atoms_all(1, k)  = k
         m = 0
@@ -164,7 +164,7 @@ subroutine fgenerate_local_coulomb_matrix(nuclear_charges, coordinates, natoms, 
     enddo
 
     ! Fill coulomb matrix according to sorted row-norms
-    cm = 0.0d0 
+    cm = 0.0d0
     !$OMP PARALLEL DO PRIVATE(idx, i, j)
     do k = 1, natoms
         do m = 1, natoms
@@ -259,7 +259,7 @@ subroutine fgenerate_atomic_coulomb_matrix(nuclear_charges, coordinates, natoms,
     enddo
 
     ! Fill coulomb matrix according to sorted row-norms
-    cm = 0.0d0 
+    cm = 0.0d0
 
     !$OMP PARALLEL DO PRIVATE(idx, i, j)
     do k = 1, natoms
