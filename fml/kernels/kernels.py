@@ -189,7 +189,8 @@ def manhattan_distance(A, B,):
 
 
 
-def get_atomic_kernels_arad(X1, X2, Z1, Z2, N1, N2, sigmas):
+def get_atomic_kernels_arad(X1, X2, Z1, Z2, sigmas, \
+        width=0.2, cut_distance=6.0, r_width=1.0, c_width=0.5):
     """ Calculates the Gaussian kernel matrix K for atomic ARAD
         descriptors for a list of different sigmas.
 
@@ -201,8 +202,6 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, N1, N2, sigmas):
         X2 -- np.array of ARAD descriptors for molecules in set 2.
         Z1 -- List of lists of nuclear charges for molecules in set 1.
         Z2 -- List of lists of nuclear charges for molecules in set 2.
-        N1 -- List of numbers of atoms in molecules in set 1.
-        N2 -- List of numbers of atoms in molecules in set 2.
         sigmas -- List of sigma for which to calculate the Kernel matrices.
 
         Returns:
@@ -212,18 +211,26 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, N1, N2, sigmas):
 
     amax = X1.shape[1]
 
-    assert X1.shape[3] == amax, "Check ARAD decriptor sizes!"
-    assert X2.shape[1] == amax, "Check ARAD decriptor sizes!"
-    assert X2.shape[3] == amax, "Check ARAD decriptor sizes!"
+    assert X1.shape[3] == amax, "ERROR: Check ARAD decriptor sizes! code = 1"
+    assert X2.shape[1] == amax, "ERROR: Check ARAD decriptor sizes! code = 2"
+    assert X2.shape[3] == amax, "ERROR: Check ARAD decriptor sizes! code = 3"
 
-    nm1 = len(N1)
-    nm2 = len(N2)
+    nm1 = len(Z1)
+    nm2 = len(Z2)
 
-    assert X1.shape[0] == nm1, "Check ARAD decriptor sizes!"
-    assert X2.shape[0] == nm2, "Check ARAD decriptor sizes!"
+    assert X1.shape[0] == nm1,  "ERROR: Check ARAD decriptor sizes! code = 4"
+    assert X2.shape[0] == nm2,  "ERROR: Check ARAD decriptor sizes! code = 5"
 
-    assert len(Z1) == nm1, "Check ARAD decriptor sizes!"
-    assert len(Z2) == nm2, "Check ARAD decriptor sizes!"
+    N1 = []
+    for Z in Z1:
+        N1.append(len(Z))
+
+    N2 = []
+    for Z in Z2:
+        N2.append(len(Z))
+
+    N1 = np.array(N1,dtype=np.int32)
+    N2 = np.array(N2,dtype=np.int32)
 
     nsigmas = len(sigmas)
     
@@ -247,10 +254,7 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, N1, N2, sigmas):
         for j, z in enumerate(c2[i]):
             Z2_arad[i,j] = z
 
-    N1 = np.array(N1,dtype=np.int32)
-    N2 = np.array(N2,dtype=np.int32)
-    
     sigmas = np.array(sigmas)
 
     return fget_kernels_arad(X1, X2, Z1_arad, Z2_arad, N1, N2, sigmas, \
-                            nm1, nm2, nsigmas)
+                nm1, nm2, nsigmas, width, cut_distance, r_width, c_width)

@@ -435,16 +435,12 @@ subroutine fget_alpha_arad(q, z, n, y, sigma, lambda, alpha)
 end subroutine fget_alpha_arad
 
 
-subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, kernels)
+subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, &
+        & width, cut_distance, r_width, c_width, kernels)
 
     use arad, only: atomic_distl2
 
     implicit none
-
-    double precision, parameter :: width = 0.2d0
-    double precision, parameter :: cut_distance = 6.0d0
-    double precision, parameter :: r_width = 1.0d0
-    double precision, parameter :: c_width = 0.5d0
 
     ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
     double precision, dimension(:,:,:,:), intent(in) :: q1
@@ -470,6 +466,12 @@ subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, 
 
     ! -1.0 / sigma^2 for use in the kernel
     double precision, dimension(nsigmas) :: inv_sigma2
+
+    ! ARAD parameters
+    double precision, intent(in) :: width
+    double precision, intent(in) :: cut_distance
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
 
     ! Resulting alpha vector
     double precision, dimension(nsigmas,nm1,nm2), intent(out) :: kernels

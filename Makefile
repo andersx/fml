@@ -14,7 +14,8 @@ IFORT_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 # Flags for GCC compilers and MKL
 GNU_COMPILER_FLAGS = --f90flags='-fopenmp -O3 -m64 -I${MKLROOT}/include -Wall -march=native'
 GNU_LINKER_FLAGS = -lgomp -lpthread -lm -ldl
-GNU_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
+# GNU_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
+GNU_MKL_LINKER_FLAGS = -lblas -llapack
 
 # Uncomment to use GCC with MKL
 # COMPILER_FLAGS = $(GNU_COMPILER_FLAGS)
