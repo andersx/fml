@@ -2,17 +2,17 @@ OBJECTS = \
 			fml/math/fcho_solve.so \
 			fml/math/fdistance.so \
 			fml/math/farad.so \
+			fml/kernels/farad_kernels.so \
 			fml/kernels/fkernels.so \
 			fml/representations/frepresentations.so
 
 # Flags for Ifort and MKL
-IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-warn unused -xHost -O3 -march=native -axAVX -qopenmp -I${MKLROOT}/include -funroll-loops -fp-model -qopt-prefetch'
-#-qopt-report-file:stdout -qopt-report-phase=vec -qopt-report=5'
+IFORT_COMPILER_FLAGS = --opt='' --fcompiler=intelem --f90flags='-warn unused -xHost -O3 -axAVX -qopenmp -I${MKLROOT}/include -funroll-loops -qopt-prefetch'
 IFORT_LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
 IFORT_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 
 # Flags for GCC compilers and MKL
-# GNU_COMPILER_FLAGS = --f90flags='-fopenmp -O3 -m64 -I${MKLROOT}/include -Wall'
+GNU_COMPILER_FLAGS = --f90flags='-fopenmp -O3 -m64 -I${MKLROOT}/include -Wall -march=native'
 GNU_LINKER_FLAGS = -lgomp -lpthread -lm -ldl
 GNU_MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 
@@ -41,6 +41,10 @@ fml/math/fdistance.so: fml/math/fdistance.f90
 fml/math/farad.so: fml/math/farad.f90
 	$(F2PY_EXEC) -c -m farad fml/math/farad.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
 	mv farad*.so fml/math/farad.so
+
+fml/kernels/farad_kernels.so: fml/kernels/farad_kernels.f90
+	$(F2PY_EXEC) -c -m farad_kernels fml/kernels/farad_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)  $(MKL_LINKER_FLAGS)
+	mv farad_kernels*.so fml/kernels/farad_kernels.so
 
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
 	$(F2PY_EXEC) -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
