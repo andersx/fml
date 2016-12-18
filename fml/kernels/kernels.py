@@ -30,6 +30,7 @@ from fkernels import fget_alpha_from_distance
 from fkernels import fget_prediction
 from fkernels import fget_prediction_from_distance
 from fkernels import fmanhattan_distance
+from fkernels import fget_vector_kernels_gaussian
 from farad_kernels import fget_kernels_arad
 
 PTP = {\
@@ -258,3 +259,19 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, sigmas, \
 
     return fget_kernels_arad(X1, X2, Z1_arad, Z2_arad, N1, N2, sigmas, \
                 nm1, nm2, nsigmas, width, cut_distance, r_width, c_width)
+
+    
+def get_atomic_kernels_gaussian(X1, X2, N1, N2, sigmas):
+
+    nm1 = len(N1)
+    nm2 = len(N2)
+
+    N1 = np.array(N1,dtype=np.int32)
+    N2 = np.array(N2,dtype=np.int32)
+
+    nsigmas = len(sigmas)
+
+    sigmas = np.array(sigmas)
+
+    return fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, \
+        nm1, nm2, nsigmas)

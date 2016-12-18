@@ -1,3 +1,74 @@
+subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
+        & nm1, nm2, nsigmas, kernels)
+
+    implicit none
+
+    ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
+    double precision, dimension(:,:,:), intent(in) :: q1
+    double precision, dimension(:,:,:), intent(in) :: q2
+
+    ! List of numbers of atoms in each molecule
+    integer, dimension(:), intent(in) :: n1
+    integer, dimension(:), intent(in) :: n2
+
+    ! Sigma in the Gaussian kernel
+    double precision, dimension(:), intent(in) :: sigmas
+
+    ! Number of molecules
+    integer, intent(in) :: nm1
+    integer, intent(in) :: nm2
+
+    ! Number of sigmas
+    integer, intent(in) :: nsigmas
+
+    ! -1.0 / sigma^2 for use in the kernel
+    double precision, dimension(nsigmas) :: inv_sigma2
+
+    ! Resulting alpha vector
+    double precision, dimension(nsigmas,nm1,nm2), intent(out) :: kernels
+
+    ! Internal counters
+    integer :: i, j, k, ni, nj, ia, ja
+
+    ! Temporary variables necessary for parallelization
+    double precision, allocatable, dimension(:,:) :: atomic_distance
+
+    inv_sigma2(:) = -1.0d0 / (sigmas(:))**2
+
+
+    kernels(:,:,:) = 0.0d0
+    
+    allocate(atomic_distance(maxval(n1), maxval(n2)))
+    atomic_distance(:,:) = 0.0d0
+
+    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni,nj)
+    do j = 1, nm2
+        nj = n2(j)
+        do i = 1, nm1
+            ni = n1(i)
+
+            atomic_distance(:,:) = 0.0d0
+
+            do ja = 1, nj
+                do ia = 1, ni
+
+                    atomic_distance(ia,ja) = sqrt(sum((q1(i,ja,:) - q2(j,ja,:))**2)) 
+
+                enddo
+            enddo
+
+            do k = 1, nsigmas
+                kernels(k, i, j) =  sum(exp(atomic_distance(:ni,:nj) * inv_sigma2(k)))
+            enddo
+
+        enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    deallocate(atomic_distance)
+
+end subroutine fget_vector_kernels_gaussian
+
 subroutine fgaussian_kernel(a, na, b, nb, k, sigma)
 
     implicit none
