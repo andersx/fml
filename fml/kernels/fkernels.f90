@@ -33,7 +33,7 @@ subroutine fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, &
     ! Temporary variables necessary for parallelization
     double precision, allocatable, dimension(:,:) :: atomic_distance
 
-    inv_sigma(:) = -1.0d0 / (sigmas(:))**2
+    inv_sigma(:) = -1.0d0 / sigmas(:)
 
     kernels(:,:,:) = 0.0d0
     
