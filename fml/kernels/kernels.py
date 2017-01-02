@@ -261,32 +261,66 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, sigmas, \
     return fget_kernels_arad(X1, X2, Z1_arad, Z2_arad, N1, N2, sigmas, \
                 nm1, nm2, nsigmas, width, cut_distance, r_width, c_width)
 
-def get_atomic_kernels_laplacian(X1, X2, N1, N2, sigmas):
+def get_atomic_kernels_laplacian(X1, X2, Z1, Z2, sigmas):
+    """ Calculates the Laplacian kernel matrix K for atomic (vector)
+        descriptors for a list of different sigmas.
 
-    nm1 = len(N1)
-    nm2 = len(N2)
+        K is calculated using an OpenMP parallel Fortran routine.
 
-    N1 = np.array(N1,dtype=np.int32)
-    N2 = np.array(N2,dtype=np.int32)
+        Arguments:
+        ==============
+        X1 -- np.array of ARAD descriptors for molecules in set 1.
+        X2 -- np.array of ARAD descriptors for molecules in set 2.
+        Z1 -- List of lists of nuclear charges for molecules in set 1.
+        Z2 -- List of lists of nuclear charges for molecules in set 2.
+        sigmas -- List of sigma for which to calculate the Kernel matrices.
+
+        Returns:
+        ==============
+        K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
+    """
+
+    nm1 = len(Z1)
+    nm2 = len(Z2)
+
+    N1 = np.array([len(Z) for Z in Z1], dtype=np.int32)
+    N2 = np.array([len(Z) for Z in Z2], dtype=np.int32)
 
     nsigmas = len(sigmas)
 
     sigmas = np.array(sigmas)
 
-    return fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, \
+    return fget_vector_kernels_laplacian(X1, X2, N1, N2, sigmas, \
         nm1, nm2, nsigmas)
     
-def get_atomic_kernels_gaussian(X1, X2, N1, N2, sigmas):
+def get_atomic_kernels_gaussian(X1, X2, Z1, Z2, sigmas):
+    """ Calculates the Laplacian kernel matrix K for atomic (vector)
+        descriptors for a list of different sigmas.
 
-    nm1 = len(N1)
-    nm2 = len(N2)
+        K is calculated using an OpenMP parallel Fortran routine.
 
-    N1 = np.array(N1,dtype=np.int32)
-    N2 = np.array(N2,dtype=np.int32)
+        Arguments:
+        ==============
+        X1 -- np.array of ARAD descriptors for molecules in set 1.
+        X2 -- np.array of ARAD descriptors for molecules in set 2.
+        Z1 -- List of lists of nuclear charges for molecules in set 1.
+        Z2 -- List of lists of nuclear charges for molecules in set 2.
+        sigmas -- List of sigma for which to calculate the Kernel matrices.
+
+        Returns:
+        ==============
+        K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
+    """
+
+    nm1 = len(Z1)
+    nm2 = len(Z2)
+
+    N1 = np.array([len(Z) for Z in Z1], dtype=np.int32)
+    N2 = np.array([len(Z) for Z in Z2], dtype=np.int32)
 
     nsigmas = len(sigmas)
 
     sigmas = np.array(sigmas)
 
-    return fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, \
+    return fget_vector_kernels_gaussian(X1, X2, N1, N2, sigmas, \
         nm1, nm2, nsigmas)

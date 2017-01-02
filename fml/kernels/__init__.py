@@ -10,4 +10,5 @@ from kernels import laplacian_kernel, gaussian_kernel, get_alpha, get_prediction
 from farad_kernels import fget_alpha_arad
 from farad_kernels import fget_kernel_arad
 from farad_kernels import fget_kernels_arad
+from farad_kernels import fget_atomic_kernels_arad
 __all__ = ['kernels']
