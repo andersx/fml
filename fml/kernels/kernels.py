@@ -36,13 +36,13 @@ from farad_kernels import fget_kernels_arad
 
 PTP = {\
          1  :[1,1] ,2:  [1,8]#Row1
-       
+
         ,3  :[2,1] ,4:  [2,2]#Row2\
         ,5  :[2,3] ,6:  [2,4] ,7  :[2,5] ,8  :[2,6] ,9  :[2,7] ,10 :[2,8]\
-       
+
         ,11 :[3,1] ,12: [3,2]#Row3\
         ,13 :[3,3] ,14: [3,4] ,15 :[3,5] ,16 :[3,6] ,17 :[3,7] ,18 :[3,8]\
-       
+
         ,19 :[4,1] ,20: [4,2]#Row4\
         ,31 :[4,3] ,32: [4,4] ,33 :[4,5] ,34 :[4,6] ,35 :[4,7] ,36 :[4,8]\
         ,21 :[4,9] ,22: [4,10],23 :[4,11],24 :[4,12],25 :[4,13],26 :[4,14],27 :[4,15],28 :[4,16],29 :[4,17],30 :[4,18]\
@@ -235,7 +235,7 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, sigmas, \
     N2 = np.array(N2,dtype=np.int32)
 
     nsigmas = len(sigmas)
-    
+
     c1 = []
     for charges in Z1:
         c1.append(np.array([PTP[int(q)] for q in charges], dtype=np.int32))
@@ -269,8 +269,8 @@ def get_atomic_kernels_laplacian(X1, X2, Z1, Z2, sigmas):
 
         Arguments:
         ==============
-        X1 -- np.array of ARAD descriptors for molecules in set 1.
-        X2 -- np.array of ARAD descriptors for molecules in set 2.
+        X1 -- np.array of shape (nmols, natoms, descriptorsize) padded with 0.0.
+        X2 -- np.array of shape (nmols, natoms, descriptorsize) padded with 0.0.
         Z1 -- List of lists of nuclear charges for molecules in set 1.
         Z2 -- List of lists of nuclear charges for molecules in set 2.
         sigmas -- List of sigma for which to calculate the Kernel matrices.
@@ -292,17 +292,17 @@ def get_atomic_kernels_laplacian(X1, X2, Z1, Z2, sigmas):
 
     return fget_vector_kernels_laplacian(X1, X2, N1, N2, sigmas, \
         nm1, nm2, nsigmas)
-    
+
 def get_atomic_kernels_gaussian(X1, X2, Z1, Z2, sigmas):
-    """ Calculates the Laplacian kernel matrix K for atomic (vector)
+    """ Calculates the Gaussian kernel matrix K for atomic (vector)
         descriptors for a list of different sigmas.
 
         K is calculated using an OpenMP parallel Fortran routine.
 
         Arguments:
         ==============
-        X1 -- np.array of ARAD descriptors for molecules in set 1.
-        X2 -- np.array of ARAD descriptors for molecules in set 2.
+        X1 -- np.array of shape (nmols, natoms, descriptorsize) padded with 0.0.
+        X2 -- np.array of shape (nmols, natoms, descriptorsize) padded with 0.0.
         Z1 -- List of lists of nuclear charges for molecules in set 1.
         Z2 -- List of lists of nuclear charges for molecules in set 2.
         sigmas -- List of sigma for which to calculate the Kernel matrices.

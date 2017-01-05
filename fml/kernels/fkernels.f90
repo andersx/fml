@@ -36,7 +36,7 @@ subroutine fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, &
     inv_sigma(:) = -1.0d0 / sigmas(:)
 
     kernels(:,:,:) = 0.0d0
-    
+
     allocate(atomic_distance(maxval(n1), maxval(n2)))
     atomic_distance(:,:) = 0.0d0
 
@@ -51,7 +51,7 @@ subroutine fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, &
             do ja = 1, nj
                 do ia = 1, ni
 
-                    atomic_distance(ia,ja) = sum(abs(q1(i,ja,:) - q2(j,ja,:))) 
+                    atomic_distance(ia,ja) = sum(abs(q1(i,ia,:) - q2(j,ja,:)))
 
                 enddo
             enddo
@@ -103,11 +103,11 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
     ! Temporary variables necessary for parallelization
     double precision, allocatable, dimension(:,:) :: atomic_distance
 
-    inv_sigma2(:) = -1.0d0 / (sigmas(:))**2
+    inv_sigma2(:) = -0.5d0 / (sigmas(:))**2
 
 
     kernels(:,:,:) = 0.0d0
-    
+
     allocate(atomic_distance(maxval(n1), maxval(n2)))
     atomic_distance(:,:) = 0.0d0
 
@@ -122,7 +122,7 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
             do ja = 1, nj
                 do ia = 1, ni
 
-                    atomic_distance(ia,ja) = sqrt(sum((q1(i,ja,:) - q2(j,ja,:))**2)) 
+                    atomic_distance(ia,ja) = sqrt(sum((q1(i,ia,:) - q2(j,ja,:))**2))
 
                 enddo
             enddo
