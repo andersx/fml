@@ -51,7 +51,7 @@ subroutine fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, &
             do ja = 1, nj
                 do ia = 1, ni
 
-                    atomic_distance(ia,ja) = sum(abs(q1(i,ia,:) - q2(j,ja,:)))
+                    atomic_distance(ia,ja) = sum(abs(q1(:,ia,i) - q2(:,ja,j)))
 
                 enddo
             enddo
@@ -122,7 +122,7 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
             do ja = 1, nj
                 do ia = 1, ni
 
-                    atomic_distance(ia,ja) = sqrt(sum((q1(i,ia,:) - q2(j,ja,:))**2))
+                    atomic_distance(ia,ja) = sqrt(sum((q1(:,ia,i) - q2(:,ja,j))**2))
 
                 enddo
             enddo

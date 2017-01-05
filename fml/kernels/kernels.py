@@ -280,6 +280,9 @@ def get_atomic_kernels_laplacian(X1, X2, Z1, Z2, sigmas):
         K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
     """
 
+    XF1 = np.asfortranarray(np.swapaxes(X1,0,2))
+    XF2 = np.asfortranarray(np.swapaxes(X2,0,2))
+
     nm1 = len(Z1)
     nm2 = len(Z2)
 
@@ -290,7 +293,7 @@ def get_atomic_kernels_laplacian(X1, X2, Z1, Z2, sigmas):
 
     sigmas = np.array(sigmas)
 
-    return fget_vector_kernels_laplacian(X1, X2, N1, N2, sigmas, \
+    return fget_vector_kernels_laplacian(XF1, XF2, N1, N2, sigmas, \
         nm1, nm2, nsigmas)
 
 def get_atomic_kernels_gaussian(X1, X2, Z1, Z2, sigmas):
@@ -312,6 +315,9 @@ def get_atomic_kernels_gaussian(X1, X2, Z1, Z2, sigmas):
         K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
     """
 
+    XF1 = np.asfortranarray(np.swapaxes(X1,0,2))
+    XF2 = np.asfortranarray(np.swapaxes(X2,0,2))
+
     nm1 = len(Z1)
     nm2 = len(Z2)
 
@@ -322,5 +328,5 @@ def get_atomic_kernels_gaussian(X1, X2, Z1, Z2, sigmas):
 
     sigmas = np.array(sigmas)
 
-    return fget_vector_kernels_gaussian(X1, X2, N1, N2, sigmas, \
+    return fget_vector_kernels_gaussian(XF1, XF2, N1, N2, sigmas, \
         nm1, nm2, nsigmas)
