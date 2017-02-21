@@ -287,7 +287,7 @@ subroutine molecular_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, 
     allocate(sin1(nmol1, maxval(N1), maxval(N1)))
     allocate(sin2(nmol2, maxval(N2), maxval(N2)))
 
-!$OMP PARALLEL DO
+    !$OMP PARALLEL DO
     do i = 1, nmol1
         do m_1 = 1, N1(i)
             do j_1 = 1, N1(i)
@@ -295,9 +295,9 @@ subroutine molecular_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, 
             enddo
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
-!$OMP PARALLEL DO
+    !$OMP PARALLEL DO
     do i = 1, nmol2
         do m_1 = 1, N2(i)
             do j_1 = 1, N2(i)
@@ -305,19 +305,24 @@ subroutine molecular_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, 
             enddo
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
 
+    !$OMP PARALLEL DO
     do i = 1, nmol1
         D11(i) = distl2(X1(i,:,:,:), X1(i,:,:,:), Z1(i,:,:), Z1(i,:,:), N1(i), N1(i), &
             & width, cut_distance, r_width, c_width, sin1(i,:,:), sin1(i,:,:))
     enddo
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO
     do i = 1, nmol2
         D22(i) = distl2(X2(i,:,:,:), X2(i,:,:,:), Z2(i,:,:), Z2(i,:,:), N2(i), N2(i), &
             & width, cut_distance, r_width, c_width, sin2(i,:,:), sin2(i,:,:))
     enddo
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO
     do j = 1, nmol2
         do i = 1, nmol1
             D12(i,j) = distl2(X1(i,:,:,:), X2(j,:,:,:), Z1(i,:,:), Z2(j,:,:), N1(i), N2(j), &
@@ -329,6 +334,7 @@ subroutine molecular_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, 
 
         enddo
     enddo
+    !$OMP END PARALLEL DO
 
     deallocate(sin1)
     deallocate(sin2)
@@ -421,128 +427,152 @@ subroutine molecular_arad_l2_distance(X1, X2, Z1, Z2, N1, N2, width, &
 end subroutine molecular_arad_l2_distance
 
 
-subroutine atomic_arad_l2_distance_all(X1, X2, Z1, Z2, N1, N2, nmol1, nmol2, width, &
-    & cut_distance, r_width, c_width, D12)
+subroutine atomic_arad_l2_distance_all(q1, q2, z1, z2, n1, n2, nm1, nm2, width, &
+    & cut_distance, r_width, c_width, amax, dmatrix)
 
     use funcs, only: m_dist, stoch_dist, atomic_distl2
 
     implicit none
 
-    double precision, dimension(:,:,:,:), intent(in) :: X1
-    double precision, dimension(:,:,:,:), intent(in) :: X2
+    ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
+    double precision, dimension(:,:,:,:), intent(in) :: q1
+    double precision, dimension(:,:,:,:), intent(in) :: q2
 
-    integer, dimension(:,:,:), intent(in) :: Z1
-    integer, dimension(:,:,:), intent(in) :: Z2
+    ! ARAD atom-types for each atom in each molecule, format (i, j_1, 2)
+    double precision, dimension(:,:,:), intent(in) :: z1
+    double precision, dimension(:,:,:), intent(in) :: z2
 
-    integer, dimension(:), intent(in) :: N1
-    integer, dimension(:), intent(in) :: N2
+    ! List of numbers of atoms in each molecule
+    integer, dimension(:), intent(in) :: n1
+    integer, dimension(:), intent(in) :: n2
 
-    integer, intent(in) :: nmol1
-    integer, intent(in) :: nmol2
+    ! Number of molecules
+    integer, intent(in) :: nm1
+    integer, intent(in) :: nm2
+    
+    ! Max number of atoms in one descriptor
+    integer, intent(in) :: amax
 
+    ! ARAD parameters
     double precision, intent(in) :: width
     double precision, intent(in) :: cut_distance
     double precision, intent(in) :: r_width
     double precision, intent(in) :: c_width
 
-    integer, parameter :: nmax = 30
+    ! Resulting distance matrix
+    double precision, dimension(nm1,nm2,amax,amax), intent(out) :: dmatrix
 
-    double precision, dimension(nmol1,nmol2,30,30), intent(out) :: D12
-    double precision, allocatable, dimension(:,:,:) :: sin1, sin2
+    ! Pre-computed sine terms
+    double precision, allocatable, dimension(:,:,:) :: sin1
+    double precision, allocatable, dimension(:,:,:) :: sin2
 
-    integer :: j_1, j_2, m_1
-    integer :: i, j
+    ! Pre-computed terms in the full distance matrix
+    double precision, allocatable, dimension(:,:) :: selfl21
+    double precision, allocatable, dimension(:,:) :: selfl22
 
-    double precision, dimension(nmol1,nmax) :: D11
-    double precision, dimension(nmol1,nmax) :: D22
+    ! Internal counters
+    integer :: i, j, k, ni, nj
+    integer :: m_1, i_1, j_1
 
-    double precision :: dd, inv_cut
-
+    ! Pre-computed constants
     double precision :: r_width2
     double precision :: c_width2
+    double precision :: inv_cut
+    double precision :: l2dist
 
+    ! Value of PI at full FORTRAN precision.
     double precision, parameter :: pi = 4.0d0 * atan(1.0d0)
 
-    double precision, parameter :: eps = 1.0e-11
+    ! Small number // to test for numerical stability
+    double precision, parameter :: eps = 5.0e-12
+
 
     r_width2 = r_width**2
     c_width2 = c_width**2
 
     inv_cut = pi / (2.0d0 * cut_distance)
 
-    allocate(sin1(nmol1, maxval(N1), maxval(N1)))
-    allocate(sin2(nmol2, maxval(N2), maxval(N2)))
+    allocate(sin1(nm1, maxval(n1), maxval(n1)))
+    allocate(sin2(nm2, maxval(n2), maxval(n2)))
 
-!$OMP PARALLEL DO
-    do i = 1, nmol1
-        do m_1 = 1, N1(i)
-            do j_1 = 1, N1(i)
-            sin1(i, j_1, m_1) = 1.0d0 - sin(x1(i,j_1,1,m_1) * inv_cut)
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm1
+        ni = n1(i)
+        do m_1 = 1, ni
+            do i_1 = 1, ni
+                sin1(i, i_1, m_1) = 1.0d0 - sin(q1(i,i_1,1,m_1) * inv_cut)
             enddo
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
-!$OMP PARALLEL DO
-    do i = 1, nmol2
-        do m_1 = 1, N2(i)
-            do j_1 = 1, N2(i)
-            sin2(i, j_1, m_1) = 1.0d0 - sin(x2(i,j_1,1,m_1) * inv_cut)
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm2
+        ni = n2(i)
+        do m_1 = 1, ni
+            do i_1 = 1, ni
+                sin2(i, i_1, m_1) = 1.0d0 - sin(q2(i,i_1,1,m_1) * inv_cut)
             enddo
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
+    allocate(selfl21(nm1, maxval(n1)))
+    allocate(selfl22(nm2, maxval(n2)))
 
-!$OMP PARALLEL DO
-    do i = 1, nmol1
-        do j_1 = 1, N1(i)
-
-            D11(i,j_1) = atomic_distl2(X1(i,j_1,:,:),X1(i,j_1,:,:),n1(i),n1(i), &
-                & sin1(i,j_1,:),sin1(i,j_1,:),width,cut_distance,R_Width,C_width)
-
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm1
+        ni = n1(i)
+        do i_1 = 1, ni
+            selfl21(i,i_1) = atomic_distl2(q1(i,i_1,:,:), q1(i,i_1,:,:), n1(i), n1(i), &
+                & sin1(i,i_1,:), sin1(i,i_1,:), width, cut_distance, r_width, c_width)
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
-!$OMP PARALLEL DO
-    do i = 1, nmol2
-        do j_1 = 1, N2(i)
-            D22(i,j_1) = atomic_distl2(X2(i,j_1,:,:),X2(i,j_1,:,:),n2(i),n2(i), &
-                & sin2(i,j_1,:),sin2(i,j_1,:),width,cut_distance,R_Width,C_width)
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm2
+        ni = n2(i)
+        do i_1 = 1, ni
+            selfl22(i,i_1) = atomic_distl2(q2(i,i_1,:,:), q2(i,i_1,:,:), n2(i), n2(i), &
+                & sin2(i,i_1,:), sin2(i,i_1,:), width, cut_distance, r_width, c_width)
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
-    D12 = 0.0d0
+    dmatrix = 0.0d0
 
-!$OMP PARALLEL DO PRIVATE(dd) SCHEDULE(DYNAMIC)
-    do i = 1, nmol1
-        do j_1 = 1, N1(i)
-            do j = 1, nmol2
-                do j_2 = 1, N2(j)
+    !$OMP PARALLEL DO PRIVATE(l2dist,ni,nj)
+    do j = 1, nm2
+        nj = n2(j)
+        do i = 1, nm1
+            ni = n1(i)
 
-                    ! rdist = abs(z1(i,j_1,1) - z2(j,j_2,1))
-                    ! CDist = abs(Z1(i,j_1,2) - Z2(j,j_2,2))
+            ! atomic_distance(:,:) = 0.0d0
 
-                    dd = atomic_distl2(X1(i,j_1,:,:),X2(j,j_2,:,:),n1(i),n2(j), &
-                        & sin1(i,j_1,:),sin2(j,j_2,:),width,cut_distance,R_Width,C_width)
+            do i_1 = 1, ni
+                do j_1 = 1, nj
 
-                    ! D12(i,j,j_1, j_2) = D11(i,j_1) + D22(j,j_2) - 2.0d0 * dd * stoch_dist(RDist,CDist,R_Width,C_width)
+                    l2dist = atomic_distl2(q1(i,i_1,:,:), q2(j,j_1,:,:), n1(i), n2(j), &
+                        & sin1(i,i_1,:), sin2(j,j_1,:), width, cut_distance, r_width, c_width)
 
-                    D12(i,j,j_1, j_2) = D11(i,j_1) + D22(j,j_2) &
-                        & - 2.0d0 * dd * (r_width2/(r_width2 + (z1(i,j_1,1) - z2(j,j_2,1))**2) * &
-                        & c_width2/(c_width2 + (Z1(i,j_1,2) - Z2(j,j_2,2))**2))
+                    l2dist = selfl21(i,i_1) + selfl22(j,j_1) - 2.0d0 * l2dist &
+                        & * (r_width2/(r_width2 + (z1(i,i_1,1) - z2(j,j_1,1))**2) * &
+                        & c_width2/(c_width2 + (z1(i,i_1,2) - z2(j,j_1,2))**2))
 
-                    if (abs(D12(i,j,j_1,j_2)) < eps) D12(i,j,j_1,j_2) = 0.0d0
+                    if (abs(l2dist) < eps) l2dist = 0.0d0
+
+                    dmatrix(i,j,i_1,j_1) = l2dist
 
                 enddo
             enddo
+
         enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
+    deallocate(selfl21)
+    deallocate(selfl22)
     deallocate(sin1)
     deallocate(sin2)
-
 end subroutine atomic_arad_l2_distance_all
