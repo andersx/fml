@@ -31,7 +31,7 @@ MKL_LINKER_FLAGS = $(GNU_MKL_LINKER_FLAGS)
 # LINKER_FLAGS = $(IFORT_LINKER_FLAGS)
 # MKL_LINKER_FLAGS = $(IFORT_MKL_LINKER_FLAGS)
 
-F2PY_EXEC = f2py
+F2PY_EXEC = f2py2.7
 
 all: $(OBJECTS)
 
@@ -67,3 +67,6 @@ clean:
 	rm -f fml/representations/*.so
 	rm -f fml/representations/*.pyc
 	rm -f pgopti.dpi pgopti.dpi.lock *.dyn
+
+test:
+	tests/test_arad.py

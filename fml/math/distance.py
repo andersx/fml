@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from numpy import empty
+import numpy as np
 
 from fdistance import fmanhattan_distance
 from fdistance import fl2_distance
@@ -141,9 +142,6 @@ def get_l2_distance_arad(X1, X2, Z1, Z2, \
         D -- The distance matrices for each sigma (4D-array, Nmol1 x Nmol2 x Natom1 x Natoms2)
     """
 
-    print X1.shape
-    print X2.shape
-
     amax = X1.shape[1]
 
     assert X1.shape[3] == amax, "ERROR: Check ARAD decriptor sizes! code = 1"
@@ -167,8 +165,6 @@ def get_l2_distance_arad(X1, X2, Z1, Z2, \
     N1 = np.array(N1,dtype=np.int32)
     N2 = np.array(N2,dtype=np.int32)
 
-    nsigmas = len(sigmas)
-    
     c1 = []
     for charges in Z1:
         c1.append(np.array([PTP[int(q)] for q in charges], dtype=np.int32))
