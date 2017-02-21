@@ -329,8 +329,8 @@ if __name__ == "__main__":
 
         mol = fml.Molecule()
         mol.read_xyz(path + filename)
-        mols.append(mol)
         mol.generate_arad_descriptor(size=30)
+        mols.append(mol)
 
     
     arad = fml.ARAD()

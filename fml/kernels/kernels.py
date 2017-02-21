@@ -210,9 +210,6 @@ def get_atomic_kernels_arad(X1, X2, Z1, Z2, sigmas, \
         K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
     """
 
-    print X1.shape
-    print X2.shape
-
     amax = X1.shape[1]
 
     assert X1.shape[3] == amax, "ERROR: Check ARAD decriptor sizes! code = 1"
