@@ -4,6 +4,7 @@ OBJECTS = \
 			fml/math/farad.so \
 			fml/kernels/farad_kernels.so \
 			fml/kernels/fkernels.so \
+			fml/kernels/fforce_kernels.so \
 			fml/representations/frepresentations.so
 
 # Flags for Ifort and MKL
@@ -54,6 +55,10 @@ fml/kernels/farad_kernels.so: fml/kernels/farad_kernels.f90
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
 	$(F2PY_EXEC) -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
 	mv fkernels*.so fml/kernels/fkernels.so
+
+fml/kernels/fforce_kernels.so: fml/kernels/fforce_kernels.f90
+	$(F2PY_EXEC) -c -m fforce_kernels fml/kernels/fforce_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
+	mv fforce_kernels*.so fml/kernels/fforce_kernels.so
 
 fml/representations/frepresentations.so: fml/representations/frepresentations.f90
 	$(F2PY_EXEC) -c -m frepresentations fml/representations/frepresentations.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)

@@ -51,6 +51,7 @@ class Molecule:
         self.atomtypes = []
         self.nuclear_charges = []
         self.coordinates = []
+        self.active_atoms = []
 
         # Container for misc properties
         self.properties = []
