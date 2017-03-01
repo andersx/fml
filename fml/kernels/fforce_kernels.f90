@@ -35,11 +35,11 @@ function outer3d(ri, rj)
 
 end function outer3d
 
-function periodic_distance(zi, zj, c_width, r_width)
+function periodic_distance(zi, zj, r_width, c_width)
 
     implicit none
 
-    integer, dimension(2), intent(in) :: zi 
+    integer, dimension(2), intent(in) :: zi
     integer, dimension(2), intent(in) :: zj
     double precision, intent(in) :: c_width
     double precision, intent(in) :: r_width
@@ -49,7 +49,7 @@ function periodic_distance(zi, zj, c_width, r_width)
 
     ! Row-distance
     dr = exp(-dble(abs(zi(1) - zj(1)))/r_width)
-    
+
     ! Column-distance
     dc = exp(-dble(abs(zi(2) - zj(2)))/c_width)
 
@@ -60,7 +60,7 @@ end function periodic_distance
 
 subroutine fsingle_force_kernel_inout_all(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_width, K)
 
-    ! use force_tools, only: outer3d, periodic_distance 
+    ! use force_tools, only: outer3d, periodic_distance
 
     implicit none
 
@@ -84,8 +84,8 @@ subroutine fsingle_force_kernel_inout_all(xi, xj, ni, nj, qi, qj, sigma_space, r
 
     ! Kernel width for real-space and periodic table
     double precision, intent(in) :: sigma_space
-    double precision, intent(in) :: r_width 
-    double precision, intent(in) :: c_width 
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
 
     ! The actual kernel
     ! double precision, dimension(3, 3, nj, ni), intent(inout) :: K
@@ -96,7 +96,7 @@ subroutine fsingle_force_kernel_inout_all(xi, xj, ni, nj, qi, qj, sigma_space, r
 
     ! Intermediate distance vectors
     double precision, dimension(3) :: ri, rj
-    
+
     ! Norm of intermediate distance vectors
     double precision :: ri_norm, rj_norm
 
@@ -110,7 +110,7 @@ subroutine fsingle_force_kernel_inout_all(xi, xj, ni, nj, qi, qj, sigma_space, r
 
     quarter_inv_sigma_space2 = 0.25d0 / (sigma_space**2)
     half_inv_sigma_space2 = 0.5d0 / (sigma_space**2)
-    
+
     K = 0.0d0
 
     do i = 1, ni
@@ -148,7 +148,7 @@ end subroutine fsingle_force_kernel_inout_all
 subroutine fsingle_force_kernel_inout(xi, xj, ni, nj, qi, qj, &
         & acti, actj, nacti, nactj, sigma_space, r_width, c_width, K)
 
-    ! use force_tools, only: outer3d, periodic_distance 
+    ! use force_tools, only: outer3d, periodic_distance
 
     implicit none
 
@@ -184,8 +184,8 @@ subroutine fsingle_force_kernel_inout(xi, xj, ni, nj, qi, qj, &
 
     ! Kernel width for real-space and periodic table
     double precision, intent(in) :: sigma_space
-    double precision, intent(in) :: r_width 
-    double precision, intent(in) :: c_width 
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
 
     ! The actual kernel
     ! double precision, dimension(3, 3, nj, ni), intent(inout) :: K
@@ -196,7 +196,7 @@ subroutine fsingle_force_kernel_inout(xi, xj, ni, nj, qi, qj, &
 
     ! Intermediate distance vectors
     double precision, dimension(3) :: ri, rj
-    
+
     ! Norm of intermediate distance vectors
     double precision :: ri_norm, rj_norm
 
@@ -210,7 +210,7 @@ subroutine fsingle_force_kernel_inout(xi, xj, ni, nj, qi, qj, &
 
     quarter_inv_sigma_space2 = 0.25d0 / (sigma_space**2)
     half_inv_sigma_space2 = 0.5d0 / (sigma_space**2)
-    
+
     K = 0.0d0
 
     ! do i = 1, ni
@@ -252,7 +252,7 @@ end module force_tools
 ! subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, sigma_periodic, K)
 subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_width, K)
 
-    use force_tools, only: outer3d, periodic_distance 
+    use force_tools, only: outer3d, periodic_distance
 
     implicit none
 
@@ -276,8 +276,8 @@ subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_
 
     ! Kernel width for real-space and periodic table
     double precision, intent(in) :: sigma_space
-    double precision, intent(in) :: r_width 
-    double precision, intent(in) :: c_width 
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
 
     ! The actual kernel
     double precision, dimension(3, 3, nj, ni), intent(out) :: K
@@ -287,7 +287,7 @@ subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_
 
     ! Intermediate distance vectors
     double precision, dimension(3) :: ri, rj
-    
+
     ! Norm of intermediate distance vectors
     double precision :: ri_norm, rj_norm
 
@@ -301,7 +301,7 @@ subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_
 
     quarter_inv_sigma_space2 = 0.25d0 / (sigma_space**2)
     half_inv_sigma_space2 = 0.5d0 / (sigma_space**2)
-    
+
     K = 0.0d0
 
     do i = 1, ni
@@ -341,10 +341,10 @@ subroutine fsingle_force_kernel(xi, xj, ni, nj, qi, qj, sigma_space, r_width, c_
 end subroutine fsingle_force_kernel
 
 
-subroutine fforce_kernel(xi, xj, ni, nj, qi, qj, nmi, nmj, amax, &
-        & acti, actj, nacti, nactj, actmax, sigma_space, r_width, c_width, K)
+subroutine fcovariant_force_kernel(xi, xj, ni, nj, qi, qj, zi, zj, nmi, nmj, amax, &
+    & acti, actj, nacti, nactj, actmax, sigma_space, periodic_distance_matrix, r_width, c_width, K)
 
-    use force_tools, only: fsingle_force_kernel_inout
+    use force_tools, only: outer3d, periodic_distance
 
     implicit none
 
@@ -366,12 +366,21 @@ subroutine fforce_kernel(xi, xj, ni, nj, qi, qj, nmi, nmj, amax, &
     ! Periodic table, molecule j
     integer, dimension(:,:,:), intent(in) :: qj
 
+    ! Atomic number,  molecule i
+    integer, dimension(:,:), intent(in) :: zi
+
+    ! Atomic number, molecule j
+    integer, dimension(:,:), intent(in) :: zj
+
+    ! Z x Z matrix of distance in the periodic table with the given r_width and c_width
+    double precision, dimension(:,:), intent(in) :: periodic_distance_matrix
+
     ! Number of molecules i
     integer, intent(in) :: nmi
 
     ! Number of molecules j
     integer, intent(in) :: nmj
-    
+
     ! Max atoms in one molecule
     integer, intent(in) :: amax
 
@@ -392,8 +401,8 @@ subroutine fforce_kernel(xi, xj, ni, nj, qi, qj, nmi, nmj, amax, &
 
     ! Kernel width for real-space and periodic table
     double precision, intent(in) :: sigma_space
-    double precision, intent(in) :: r_width 
-    double precision, intent(in) :: c_width 
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width
 
     ! The actual kernel
     ! double precision, dimension(3, 3, amax, amax, nmj, nmi), intent(out) :: K
@@ -404,7 +413,7 @@ subroutine fforce_kernel(xi, xj, ni, nj, qi, qj, nmi, nmj, amax, &
 
     ! Intermediate distance vectors
     double precision, dimension(3) :: ri, rj
-    
+
     ! Norm of intermediate distance vectors
     double precision :: ri_norm, rj_norm
 
@@ -420,28 +429,85 @@ subroutine fforce_kernel(xi, xj, ni, nj, qi, qj, nmi, nmj, amax, &
     ! double precision, dimension(3, 3, amax, amax) :: Kij
     double precision, dimension(3, 3, actmax, actmax) :: Kij
 
-    do j = 1, nmj
-        do i = 1, nmi
+    integer :: iii, jjj
 
-            Kij = 0.0d0
-            call fsingle_force_kernel_inout(xi(i,:,:), xj(j,:,:), ni(i), nj(j), qi(i,:,:), qj(j,:,:), &
-                & acti(i,:), actj(j,:), nacti(i), nactj(j), sigma_space, r_width, c_width, Kij)
+    double precision, dimension(nmi,actmax,amax) :: dmati
+    double precision, dimension(nmj,actmax,amax) :: dmatj
 
-            K(:3, :3, :actmax, :actmax, j, i) = K(:3, :3, :actmax, :actmax, j, i) + Kij(:3, :3, :actmax, :actmax)
+    double precision :: lola, lolb
 
+    quarter_inv_sigma_space2 = 0.25d0 / (sigma_space**2)
+    half_inv_sigma_space2 = 0.5d0 / (sigma_space**2)
+    inv_L = 1.0d0 / (2.0d0 * sqrt(pi * sigma_space**2))**3
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,ri,ri_norm)
+    do iii = 1, nmi
+        do i = 1, nacti(iii)
+            do ii = 1, ni(iii)
+                ri = xi(iii,acti(iii,i),:) - xi(iii,ii,:)
+                ri_norm = norm2(ri)
+                dmati(iii,i,ii) = ri_norm
+            end do
         end do
     end do
 
-    ! do j = 1, nmj
-    !     do i = 1, nmi
+    !$OMP PARALLEL DO PRIVATE(j,jj,rj,rj_norm)
+    do jjj = 1, nmj
+        do j = 1, nactj(jjj)
+            do jj = 1, nj(jjj)
+                rj = xj(jjj,actj(jjj,j),:) - xj(jjj,jj,:)
+                rj_norm = norm2(rj)
+                dmatj(jjj,j,jj) = rj_norm
+            end do
+        end do
+    end do
+    !$OMP END PARALLEL DO
 
-    !         Kij = 0.0d0
-    !         call fsingle_force_kernel_inout(xi(i,:,:), xj(j,:,:), ni(i), nj(j), &
-    !             & qi(i,:,:), qj(j,:,:), sigma_space, r_width, c_width, Kij)
 
-    !         K(:3, :3, :amax, :amax, j, i) = K(:3, :3, :amax, :amax, j, i) + Kij(:3, :3, :amax, :amax)
+    !$OMP PARALLEL DO PRIVATE(i,j,ii,jj,ri,rj,ri_norm,rj_norm,alpha_ij,gamma_ij,phi_ij,Kij)
+    do jjj = 1, nmj
+        do iii = 1, nmi
 
-    !     end do
-    ! end do
+            Kij = 0.0d0
 
-end subroutine fforce_kernel
+            do i = 1, nacti(iii)
+                do j = 1, nactj(jjj)
+
+                    do ii = 1, ni(iii)
+                        do jj = 1, nj(jjj)
+
+                            if ((acti(iii,i) == ii).or.(actj(jjj,j) == jj)) cycle
+
+                            ri = xi(iii,acti(iii,i),:) - xi(iii,ii,:)
+                            rj = xj(jjj,actj(jjj,j),:) - xj(jjj,jj,:)
+
+                            ri_norm = dmati(iii,i,ii)
+                            rj_norm = dmatj(jjj,j,jj)
+
+                            alpha_ij = (ri_norm**2 + rj_norm**2) * quarter_inv_sigma_space2
+                            gamma_ij = (ri_norm * rj_norm) * half_inv_sigma_space2
+
+                            phi_ij = exp(-alpha_ij) / (gamma_ij**2) &
+                               & * (gamma_ij *  cosh(gamma_ij) - sinh(gamma_ij))
+
+                            Kij(:3,:3,j,i) = Kij(:3,:3,j,i) + outer3d(ri, rj) * phi_ij &
+                               &  * periodic_distance_matrix(zi(iii,ii),zj(jjj,jj))
+
+
+                        end do
+                    end do
+
+                    Kij(:3,:3,j,i) = Kij(:3,:3,j,i) * periodic_distance_matrix(zi(iii,i),zj(jjj,j))
+
+                end do
+            end do
+
+            K(:3, :3, :actmax, :actmax, jjj, iii) = K(:3, :3, :actmax, :actmax, jjj, iii) + Kij(:3, :3, :actmax, :actmax)
+
+        end do
+    end do
+    !$OMP END PARALLEL DO
+
+    K = K * inv_L
+
+end subroutine fcovariant_force_kernel

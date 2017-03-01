@@ -34,6 +34,6 @@ from farad_kernels import fget_kernel_arad
 from farad_kernels import fget_kernels_arad
 from farad_kernels import fget_atomic_kernels_arad
 from farad_kernels import fget_atomic_distance_arad
-from force_kernels import force_kernel
+from force_kernels import covariant_force_kernel
 from force_kernels import pyforce_kernel
 __all__ = ['kernels']

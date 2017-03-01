@@ -23,12 +23,13 @@
 import numpy as np
 import fml
 from fforce_kernels import fsingle_force_kernel
-from fforce_kernels import fforce_kernel
+from fforce_kernels import fcovariant_force_kernel
 
 PTP = {\
          1  :[1,1] ,2:  [1,8]#Row1
        
         ,3  :[2,1] ,4:  [2,2]#Row2\
+        #           C          N          O
         ,5  :[2,3] ,6:  [2,4] ,7  :[2,5] ,8  :[2,6] ,9  :[2,7] ,10 :[2,8]\
        
         ,11 :[3,1] ,12: [3,2]#Row3\
@@ -63,7 +64,7 @@ ATOMTYPE = {
 
 
 
-def periodic_distance(ai, aj, c_width, r_width):
+def periodic_distance(ai, aj, r_width, c_width):
 
     zi = PTP[ATOMTYPE[ai]]
     zj = PTP[ATOMTYPE[aj]]
@@ -80,14 +81,15 @@ def periodic_distance(ai, aj, c_width, r_width):
 def periodic_distance_table(r_width, c_width):
 
     n = len(PTP)
+    n = 10
 
     D = np.zeros((n,n))
 
     for ai in range(n):
         for aj in range(n):
 
-            zi = PTP[ai]
-            zj = PTP[aj]
+            zi = PTP[ai+1]
+            zj = PTP[aj+1]
             
             # Row-distance
             dr = np.exp(- abs(zi[0] - zj[0])/r_width)
@@ -95,7 +97,7 @@ def periodic_distance_table(r_width, c_width):
             # Column-distance
             dc = np.exp(- abs(zi[1] - zj[1])/c_width)
 
-            D[i,j] = dr * dc
+            D[ai,aj] = dr * dc
 
     return D
 
@@ -214,8 +216,7 @@ def force_kernel_all(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
 
     return K
 
-
-def force_kernel(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
+def covariant_force_kernel(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
     """ Calculates the covariant kernel matrix.
 
         Arguments:
@@ -282,6 +283,18 @@ def force_kernel(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
     for i, mol in enumerate(molj):
         qj[i,:mol.natoms,:2] += np.array([PTP[ATOMTYPE[ai]] for ai in mol.atomtypes], dtype=np.int32)[:mol.natoms,:2]
 
+    
+    # Make array of position in the periodic table
+    zi = np.zeros((nmi, amax), dtype=np.int32)
+    for i, mol in enumerate(moli):
+        zi[i,:mol.natoms] += np.array([int(ATOMTYPE[ai]) for ai in mol.atomtypes], dtype=np.int32)[:mol.natoms]
+    
+    # Make array of position in the periodic table
+    zj = np.zeros((nmj, amax), dtype=np.int32)
+    for i, mol in enumerate(molj):
+        zj[i,:mol.natoms] += np.array([int(ATOMTYPE[ai]) for ai in mol.atomtypes], dtype=np.int32)[:mol.natoms]
+
+
     # Make array of molecule sizes
     ni = np.array([mol.natoms for mol in moli], dtype=np.int32)
 
@@ -289,10 +302,10 @@ def force_kernel(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
     nj = np.array([mol.natoms for mol in molj], dtype=np.int32)
 
 
+    pd = periodic_distance_table(r_width, c_width)
 
-
-    # K = fforce_kernel(ci, cj, ni, nj, qi, qj, nmi, nmj, amax,  sigma_space, r_width, c_width)
-    K = fforce_kernel(ci, cj, ni, nj, qi, qj, nmi, nmj, amax, acti, actj, nacti, nactj, actmax, sigma_space, r_width, c_width)
+    K = fcovariant_force_kernel(ci, cj, ni, nj, qi, qj, zi, zj, nmi, nmj, amax,
+            acti, actj, nacti, nactj, actmax, sigma_space, pd, r_width, c_width)
 
     K = np.swapaxes(K,0,5)
     K = np.swapaxes(K,1,4)
