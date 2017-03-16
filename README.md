@@ -25,4 +25,36 @@ Ok, on to the installation instructions:
 
 ## 2) How to use:
 
-Will be updated soon! :D
+
+## 2.1) Generate descriptors from XYZ files
+
+FML is very low-level - here is a short example to generate descriptors for your molecules via the `fml.Molecule` class. It is convenient to store a list of `fml.Molecule`s in `cPickle` format.
+
+    import fml
+    import cPickle
+
+    ...
+   
+    # Read some properties 
+    properties = reader("properties.csv")
+
+    # Get list of filenames
+    filenames = sorted(os.listdir(xyz_dir))
+
+
+    # Max number of atoms in molecules
+    nmax = 23
+
+    mols = []
+
+    # Generate filenames
+    for filename in filenames:
+
+        #
+        mol = Molecule()
+        mol.read_xyz(xyz_dir + filename)
+        mol.properties = properties[filename]
+        mols.append(mol)
+
+    with open("mols.cpickle", "wb") as f:
+        cPickle.dump(mols, f, protocol=2)
