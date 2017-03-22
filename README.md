@@ -50,11 +50,20 @@ FML is very low-level - here is a short example to generate descriptors for your
     # Generate filenames
     for filename in filenames:
 
-        #
+        # Initialize the molecule
         mol = Molecule()
+        
+        # Read atoms from XYZ
         mol.read_xyz(xyz_dir + filename)
+        
+        # Generate and store an ARAD descriptor
+        mol.generate_arad_descriptor(size=nmax)
+        
+        # Store some associated property with the molecule
         mol.properties = properties[filename]
+        
         mols.append(mol)
 
+    # Save the molecules for later use
     with open("mols.cpickle", "wb") as f:
         cPickle.dump(mols, f, protocol=2)
