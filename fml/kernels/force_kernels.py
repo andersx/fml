@@ -307,9 +307,10 @@ def covariant_force_kernel(moli, molj, sigma_space, r_width=1.0, c_width=0.5):
     K = fcovariant_force_kernel(ci, cj, ni, nj, qi, qj, zi, zj, nmi, nmj, amax,
             acti, actj, nacti, nactj, actmax, sigma_space, pd, r_width, c_width)
 
-    K = np.swapaxes(K,0,5)
-    K = np.swapaxes(K,1,4)
-    K = np.swapaxes(K,2,3)
+    # K = np.swapaxes(K,0,5)
+    # K = np.swapaxes(K,1,4)
+    # K = np.swapaxes(K,2,3)
+    # K = np.swapaxes(K,4,5)
 
     return K
 

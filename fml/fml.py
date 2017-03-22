@@ -24,10 +24,12 @@ import numpy as np
 import copy
 
 from arad import ARAD
+from aras import ARAS
 
 from data import NUCLEAR_CHARGE
 
 from representations import fgenerate_coulomb_matrix
+from representations import fgenerate_unsorted_coulomb_matrix
 from representations import fgenerate_local_coulomb_matrix
 from representations import fgenerate_atomic_coulomb_matrix
 
@@ -61,6 +63,10 @@ class Molecule:
         self.coulomb_matrix = fgenerate_coulomb_matrix(self.nuclear_charges, \
                 self.coordinates, self.natoms, size)
 
+    def generate_unsorted_coulomb_matrix(self, size=23):
+        self.unsorted_coulomb_matrix = fgenerate_unsorted_coulomb_matrix(self.nuclear_charges, \
+                self.coordinates, self.natoms, size)
+
     def generate_local_coulomb_matrix(self, calc="all",size=23):
         self.local_coulomb_matrix = fgenerate_local_coulomb_matrix( \
                 self.nuclear_charges, self.coordinates, self.natoms, size)
@@ -76,6 +82,14 @@ class Molecule:
 
         assert (self.arad_descriptor).shape[0] == size, "ERROR: Check ARAD descriptor size!"
         assert (self.arad_descriptor).shape[2] == size, "ERROR: Check ARAD descriptor size!"
+
+    def generate_aras_descriptor(self, size=23):
+        aras_object = ARAS(maxMolSize=size,maxAts=size)
+        self.aras_descriptor = aras_object.describe(np.array(self.coordinates), \
+                np.array(self.nuclear_charges))
+
+        assert (self.aras_descriptor).shape[0] == size, "ERROR: Check ARAS descriptor size!"
+        assert (self.aras_descriptor).shape[2] == size, "ERROR: Check ARAS descriptor size!"
 
 
     def read_xyz(self, filename):

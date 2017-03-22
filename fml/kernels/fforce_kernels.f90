@@ -31,7 +31,13 @@ function outer3d(ri, rj)
     double precision, dimension(3), intent(in) :: ri, rj
     double precision, dimension(3,3) :: outer3d
 
-    outer3d(:3,:3) = spread(ri(:3), dim=1, ncopies=3) * spread(rj(:3), dim=2, ncopies=3)
+    !write (*,*) "RI", ri(:3)
+    ! write (*,*) "RJ", rj(:3)
+
+    outer3d(:3,:3) = spread(ri(:3), dim=2, ncopies=3) * spread(rj(:3), dim=1, ncopies=3)
+    ! write (*,*) "outer[0,:3] = ", outer3d(1,1), outer3d(1,2), outer3d(1,3)
+    ! write (*,*) "outer[1,:3] = ", outer3d(2,1), outer3d(2,2), outer3d(2,3)
+    ! write (*,*) "outer[2,:3] = ", outer3d(3,1), outer3d(3,2), outer3d(3,3)
 
 end function outer3d
 
@@ -406,7 +412,8 @@ subroutine fcovariant_force_kernel(xi, xj, ni, nj, qi, qj, zi, zj, nmi, nmj, ama
 
     ! The actual kernel
     ! double precision, dimension(3, 3, amax, amax, nmj, nmi), intent(out) :: K
-    double precision, dimension(3, 3, actmax, actmax, nmj, nmi), intent(out) :: K
+    ! double precision, dimension(3, 3, actmax, actmax, nmj, nmi), intent(out) :: K
+    double precision, dimension(nmi, nmj, actmax, actmax, 3, 3), intent(out) :: K
 
     ! Value of PI at full FORTRAN precision.
     double precision, parameter :: pi = 4.0d0 * atan(1.0d0)
@@ -427,7 +434,8 @@ subroutine fcovariant_force_kernel(xi, xj, ni, nj, qi, qj, zi, zj, nmi, nmj, ama
 
     ! Intermediary kernel
     ! double precision, dimension(3, 3, amax, amax) :: Kij
-    double precision, dimension(3, 3, actmax, actmax) :: Kij
+    ! double precision, dimension(3, 3, actmax, actmax) :: Kij
+    double precision, dimension(actmax, actmax, 3, 3) :: Kij
 
     integer :: iii, jjj
 
@@ -438,7 +446,7 @@ subroutine fcovariant_force_kernel(xi, xj, ni, nj, qi, qj, zi, zj, nmi, nmj, ama
 
     quarter_inv_sigma_space2 = 0.25d0 / (sigma_space**2)
     half_inv_sigma_space2 = 0.5d0 / (sigma_space**2)
-    inv_L = 1.0d0 / (2.0d0 * sqrt(pi * sigma_space**2))**3
+    inv_L = 1.0d0 / (2.0d0 * (pi * sigma_space**2))**3
 
     !$OMP PARALLEL DO PRIVATE(i,ii,ri,ri_norm)
     do iii = 1, nmi
@@ -481,28 +489,36 @@ subroutine fcovariant_force_kernel(xi, xj, ni, nj, qi, qj, zi, zj, nmi, nmj, ama
                             ri = xi(iii,acti(iii,i),:) - xi(iii,ii,:)
                             rj = xj(jjj,actj(jjj,j),:) - xj(jjj,jj,:)
 
-                            ri_norm = dmati(iii,i,ii)
-                            rj_norm = dmatj(jjj,j,jj)
+                            ! ri_norm = dmati(iii,i,ii)
+                            ri_norm = norm2(ri)
+                            ri(:) = ri(:) / ri_norm
+
+                            ! rj_norm = dmatj(jjj,j,jj)
+                            rj_norm = norm2(rj)
+                            rj(:) = rj(:) / rj_norm
 
                             alpha_ij = (ri_norm**2 + rj_norm**2) * quarter_inv_sigma_space2
                             gamma_ij = (ri_norm * rj_norm) * half_inv_sigma_space2
 
                             phi_ij = exp(-alpha_ij) / (gamma_ij**2) &
-                               & * (gamma_ij *  cosh(gamma_ij) - sinh(gamma_ij))
+                                & * (gamma_ij *  cosh(gamma_ij) - sinh(gamma_ij))
 
-                            Kij(:3,:3,j,i) = Kij(:3,:3,j,i) + outer3d(ri, rj) * phi_ij &
-                               &  * periodic_distance_matrix(zi(iii,ii),zj(jjj,jj))
-
+                            ! Kij(:3,:3,j,i) = Kij(:3,:3,j,i) + outer3d(ri, rj) * phi_ij &
+                            !   &  * periodic_distance_matrix(zi(iii,ii),zj(jjj,jj))
+                            Kij(i,j,:3,:3) = Kij(i,j,:3,:3) + outer3d(ri, rj) * phi_ij &
+                                & * periodic_distance_matrix(zi(iii,ii),zj(jjj,jj))
 
                         end do
                     end do
 
-                    Kij(:3,:3,j,i) = Kij(:3,:3,j,i) * periodic_distance_matrix(zi(iii,i),zj(jjj,j))
+                ! Kij(:3,:3,j,i) = Kij(:3,:3,j,i) * periodic_distance_matrix(zi(iii,i),zj(jjj,j))
+                    Kij(i,j,:3,:3) = Kij(i,j,:3,:3) * periodic_distance_matrix(zi(iii,i),zj(jjj,j))
 
                 end do
             end do
 
-            K(:3, :3, :actmax, :actmax, jjj, iii) = K(:3, :3, :actmax, :actmax, jjj, iii) + Kij(:3, :3, :actmax, :actmax)
+            !K(:3, :3, :actmax, :actmax, jjj, iii) = K(:3, :3, :actmax, :actmax, jjj, iii) + Kij(:3, :3, :actmax, :actmax)
+            K(iii, jjj, :actmax, :actmax, :3, :3) =  K(iii, jjj, :actmax, :actmax, :3, :3) + Kij(:actmax, :actmax, :3, :3)
 
         end do
     end do

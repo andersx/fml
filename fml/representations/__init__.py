@@ -29,6 +29,7 @@ Provides
 """
 
 from frepresentations import fgenerate_coulomb_matrix
+from frepresentations import fgenerate_unsorted_coulomb_matrix
 from frepresentations import fgenerate_local_coulomb_matrix
 from frepresentations import fgenerate_atomic_coulomb_matrix
 from representations import generate_coulomb_matrix

@@ -20,27 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import numpy as np
-import copy
+from numpy import *
+from copy import copy
 
-class ARAD(object):
-
+class ARAS(object):
+   
     def __init__(self,maxMolSize = 30,maxAts = 30,cut = 4., debug=False):
         self.tag = 'coords'
         self.debug = debug
         self.maxMolSize = maxMolSize
         self.maxAts = maxAts
         self.cut = cut
-
+        set_printoptions(threshold= 'nan')
+   
         self.PTP = {\
             1  :[1,1] ,2:  [1,8]#Row1
-
+           
             ,3  :[2,1] ,4:  [2,2]#Row2\
             ,5  :[2,3] ,6:  [2,4] ,7  :[2,5] ,8  :[2,6] ,9  :[2,7] ,10 :[2,8]\
-
+           
             ,11 :[3,1] ,12: [3,2]#Row3\
             ,13 :[3,3] ,14: [3,4] ,15 :[3,5] ,16 :[3,6] ,17 :[3,7] ,18 :[3,8]\
-
+           
             ,19 :[4,1] ,20: [4,2]#Row4\
             ,31 :[4,3] ,32: [4,4] ,33 :[4,5] ,34 :[4,6] ,35 :[4,7] ,36 :[4,8]\
             ,21 :[4,9] ,22: [4,10],23 :[4,11],24 :[4,12],25 :[4,13],26 :[4,14],27 :[4,15],28 :[4,16],29 :[4,17],30 :[4,18]\
@@ -59,105 +60,71 @@ class ARAD(object):
                 ,104:[7,10],105:[7,11],106:[7,12],107:[7,13],108:[7,14],109:[7,15],110:[7,16],111:[7,17],112:[7,18]\
             ,89 :[7,19],90: [7,20],91 :[7,21],92 :[7,22],93 :[7,23],94 :[7,24],95 :[7,25],96 :[7,26],97 :[7,27],98 :[7,28],99 :[7,29],100:[7,30],101:[7,31],101:[7,32],102:[7,14],103:[7,33]}
 
-    def describe(self,coords,ocupationList,cell = None):
+    def describe(self,coords,ocupationList,cell = None):       
         L = len(coords)
-        coords = np.asarray(coords)
-        ocupationList = np.asarray(ocupationList)
-        M =  np.zeros((self.maxMolSize,5,self.maxAts))
-
+        coords = asarray(coords)
+        ocupationList = asarray(ocupationList)
+        M =  zeros((self.maxMolSize,4+self.maxAts,self.maxAts))       
+       
         if cell is not None:
-            coords = np.dot(coords,cell)
+            coords = dot(coords,cell)
             #print cell
-            nExtend = (floor(self.cut/np.linalg.norm(cell,2,axis = 0)) + 1).astype(int)
+            nExtend = (floor(self.cut/linalg.norm(cell,2,axis = 0)) + 1).astype(int)
             #print nExtend
             for i in range(-nExtend[0],nExtend[0] + 1):
                 for j in range(-nExtend[1],nExtend[1] + 1):
                     for k in range(-nExtend[2],nExtend[2] + 1):
-
+                       
                         #print i, j, k
                         #print i*cell[0,:] + j*cell[1,:] + k*cell[2,:]
                         if i == -nExtend[0] and j  == -nExtend[1] and k  == -nExtend[2]:
                             coordsExt = coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:]
-                            ocupationListExt = copy.copy(ocupationList)
+                            ocupationListExt = copy(ocupationList)
                         else:
                             ocupationListExt = append(ocupationListExt,ocupationList)
                             coordsExt = append(coordsExt,coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:],axis = 0)
-
+               
         else:
-            coordsExt = np.copy(coords)
-            ocupationListExt = np.copy(ocupationList)
+            coordsExt = copy(coords)
+            ocupationListExt = copy(ocupationList)
 
-        M[:,0,:] = 1E+100
-
+        M[:,0,:] = 1E+100 
+       
         for i in range(L):
             #print '+'
             #Calculate Distance
             cD = - coords[i] + coordsExt[:]
-
-            ocExt =  np.asarray([self.PTP[o] for o in  ocupationListExt])
-
-
+           
+            ocExt =  asarray([self.PTP[o] for o in  ocupationListExt])
+           
+           
             #Obtaining angles
-            angs = np.sum(cD[:,np.newaxis] * cD[np.newaxis,:], axis = 2)
-            D1 = np.sqrt(np.sum(cD**2, axis = 1))
-            D2 = D1[:,np.newaxis]*D1[np.newaxis,:]
+            angs = sum(cD[:,newaxis] * cD[newaxis,:], axis = 2)
+            D1 = sqrt(sum(cD**2, axis = 1))
+            D2 = D1[:,newaxis]*D1[newaxis,:] 
             #print D2.shape
-            angs = np.arccos((angs + 10**-12)/(D2 + 10**-12))
+            angs = arccos((angs + 10**-9)/(D2 + 10**-9))
 
-            angs = np.nan_to_num(angs)
-
-
-            #Obtaining cos and sine terms
-            cosAngs = np.cos(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut))) #cos(pi * D1[newaxis,:]/(2 * self.cut))
-            sinAngs = np.sin(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut))) #cos(pi * D1[newaxis,:]/(2 * self.cut))
-
-
-
-            args = np.argsort(D1)
+            angs = nan_to_num(angs)
+            args = argsort(D1)
+            D1 = D1[args]
+            ocExt = asarray([ocExt[l] for l in args])
+            angs = angs[args,:]
+            angs = angs[:,args]
+           
+            args = where(D1 < self.cut)[0]
 
             D1 = D1[args]
+            ocExt = asarray([ocExt[l] for l in args])
+            angs = angs[args,:]
+            angs = angs[:,args]
 
-            ocExt = np.asarray([ocExt[l] for l in args])
-
-            cosAngs = cosAngs[args,:]
-            cosAngs = cosAngs[:,args]
-            sinAngs = sinAngs[args,:]
-            sinAngs = sinAngs[:,args]
-
-            args = np.where(D1 < self.cut)[0]
-            #print args
-
-            D1 = D1[args]
-            #print D1#[:50]
-
-            ocExt = np.asarray([ocExt[l] for l in args])
-
-            #cosAngs = asarray([[cosAngs[k,l] for l in args] for k in args])
-            #sinAngs = asarray([[sinAngs[k,l] for l in args] for k in args])
-
-            cosAngs = cosAngs[args,:]
-            cosAngs = cosAngs[:,args]
-            sinAngs = sinAngs[args,:]
-            sinAngs = sinAngs[:,args]
-
-            D1 = D1#[1:]
-            ocExt = ocExt#[1:]
-            cosAngs = cosAngs#[1:,1:]
-            sinAngs = sinAngs#[1:,1:]
-
+            #norm = sum(1. - sin(pi * D1[newaxis,:]/(2. * self.cut)))
+           
             M[i,0,: len(D1)] = D1
             M[i,1,: len(D1)] = ocExt[:,0]
             M[i,2,: len(D1)] = ocExt[:,1]
-            M[i,3,: len(D1)] = np.sum(cosAngs,axis = 1)
-            M[i,4,: len(D1)] = np.sum(sinAngs,axis = 1)
+            M[i,3: len(D1) + 3,: len(D1)] = angs
 
-            # norm = sum(1.0 - sin(pi * D1[newaxis,:]/(2.0 * self.cut)))
-            # M[i,0,: len(D1)] = D1/norm
-            # M[i,1,: len(D1)] = ocExt[:,0]
-            # M[i,2,: len(D1)] = ocExt[:,1]
-            # M[i,3,: len(D1)] = sum(cosAngs,axis = 1)/(norm**2)
-            # M[i,4,: len(D1)] = sum(sinAngs,axis = 1)/(norm**2)
-            #print M
-
-
+                   
         return M
