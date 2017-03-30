@@ -64,7 +64,8 @@ class ARAS(object):
         L = len(coords)
         coords = asarray(coords)
         ocupationList = asarray(ocupationList)
-        M =  zeros((self.maxMolSize,4+self.maxAts,self.maxAts))       
+        # M =  zeros((self.maxMolSize,4+self.maxAts,self.maxAts))       
+        M =  zeros((self.maxMolSize,3+self.maxAts,self.maxAts))       
        
         if cell is not None:
             coords = dot(coords,cell)

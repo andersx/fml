@@ -54,6 +54,7 @@ class Molecule:
         self.nuclear_charges = []
         self.coordinates = []
         self.active_atoms = []
+        self.unit_cell = None
 
         # Container for misc properties
         self.properties = []
@@ -79,6 +80,18 @@ class Molecule:
         arad_object = ARAD(maxMolSize=size,maxAts=size)
         self.arad_descriptor = arad_object.describe(np.array(self.coordinates), \
                 np.array(self.nuclear_charges))
+
+        assert (self.arad_descriptor).shape[0] == size, "ERROR: Check ARAD descriptor size!"
+        assert (self.arad_descriptor).shape[2] == size, "ERROR: Check ARAD descriptor size!"
+
+    def generate_arad_descriptor_periodic(self, size=23, unit_cell=None):
+
+        if unit_cell is None:
+            unit_cell = self.unit_cell
+
+        arad_object = ARAD(maxMolSize=size,maxAts=size)
+        self.arad_descriptor = arad_object.describe(np.array(self.coordinates), \
+                np.array(self.nuclear_charges), cell=unit_cell)
 
         assert (self.arad_descriptor).shape[0] == size, "ERROR: Check ARAD descriptor size!"
         assert (self.arad_descriptor).shape[2] == size, "ERROR: Check ARAD descriptor size!"
