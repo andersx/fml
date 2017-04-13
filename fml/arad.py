@@ -68,7 +68,7 @@ class ARAD(object):
         if cell is not None:
             coords = np.dot(coords,cell)
             #print cell
-            nExtend = (floor(self.cut/np.linalg.norm(cell,2,axis = 0)) + 1).astype(int)
+            nExtend = (np.floor(self.cut/np.linalg.norm(cell,2,axis = 0)) + 1).astype(int)
             #print nExtend
             for i in range(-nExtend[0],nExtend[0] + 1):
                 for j in range(-nExtend[1],nExtend[1] + 1):
@@ -80,8 +80,8 @@ class ARAD(object):
                             coordsExt = coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:]
                             ocupationListExt = copy.copy(ocupationList)
                         else:
-                            ocupationListExt = append(ocupationListExt,ocupationList)
-                            coordsExt = append(coordsExt,coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:],axis = 0)
+                            ocupationListExt = np.append(ocupationListExt,ocupationList)
+                            coordsExt = np.append(coordsExt,coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:],axis = 0)
 
         else:
             coordsExt = np.copy(coords)

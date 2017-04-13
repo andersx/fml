@@ -6,7 +6,7 @@ sys.path.append('../fml/')
 import os
 import numpy as np
 import fml
-
+import time
 import random
 
 t_width = np.pi / 4.0 # 0.7853981633974483
@@ -149,7 +149,7 @@ def get_kernel(mols1, mols2, sigma, max_size=30):
     return K
 
 
-def gen_pd(emax=20):
+def gen_pd(emax=100):
 
     pd = np.zeros((emax,emax))
 
@@ -166,7 +166,7 @@ def fdist(mol1, mol2):
     from faras import faras_molecular_distance as fd
 
     pd = gen_pd()
-    amax = 11
+    amax = mol1.aras_descriptor.shape[0]
 
     x1 = np.array(mol1.aras_descriptor).reshape((1,amax,3+amax,amax))
     x2 = np.array(mol2.aras_descriptor).reshape((1,amax,3+amax,amax))
@@ -195,7 +195,8 @@ def fdists(mols1, mols2):
     from faras import faras_molecular_distance as fd
 
     pd = gen_pd()
-    amax = mols1[0].aras_descriptor.shape[0]
+    
+    amax = 23
 
     nm1 = len(mols1)
     nm2 = len(mols2)
@@ -205,48 +206,73 @@ def fdists(mols1, mols2):
 
 
     q1 = np.zeros((nm1,amax), dtype=np.int32)
-    q2 = np.zeros((nm1,amax), dtype=np.int32)
+    q2 = np.zeros((nm2,amax), dtype=np.int32)
 
     for a in range(nm1):
-        for i, charge in enumerate(mols[a].nuclear_charges):
+        for i, charge in enumerate(mols1[a].nuclear_charges):
             q1[a,i] = int(charge)
 
     for b in range(nm2):
-        for j, charge in enumerate(mols[b].nuclear_charges):
+        for j, charge in enumerate(mols2[b].nuclear_charges):
             q2[b,j] = int(charge)
 
     n1 = np.array([mol.natoms for mol in mols1], dtype=np.int32)
     n2 = np.array([mol.natoms for mol in mols2], dtype=np.int32)
 
+    print x1.shape
+    print x2.shape
+    print q1
+    print q2
+    print n1
+    print n2
+    print nm1
+    print nm2
+    print pd.shape
+
+
+    # d = np.zeros((nm1,nm2,amax,amax), order="F")
+
+    # from faras import flal
+    # d = flal(x1, x2, q1, q2, n1, n2, nm1, nm2, amax, pd)
+    # print d[0,0,0,0], d[2,2,22,22]
+    
+
+    # print "LOL"
     d = fd(x1, x2, q1, q2, n1, n2, nm1, nm2, amax, pd)
+    print d[0,0,0,0], d[2,2,22,22]
 
     return d
 
 if __name__ == "__main__":
     
     mols = []
-    path = "xyz/"
+    path = "qm7_xyz/"
     filenames = os.listdir(path)
 
     np.set_printoptions(linewidth=99999999999999999)
     print "Generating ARAS descriptors from FML interface ..."
-    for filename in sorted(filenames):
+
+    n_test = 1500
+    n_train = 1500
+
+    n_total = n_train + n_test
+
+    random.seed(666)
+    random.shuffle(filenames)
+
+    for filename in filenames[:n_total]:
 
         mol = fml.Molecule()
         mol.read_xyz(path + filename)
-        mol.generate_aras_descriptor(size=11)
+        mol.generate_aras_descriptor(size=23)
         mols.append(mol)
 
-    train = mols[:10]
-    test = mols[-10:]
 
-    a = 1
-    b = 1
+    train = mols[:n_train]
+    test = mols[-n_test:]
 
-    d = aras_distance(mols[a], mols[b])
-    
-    print d
-    d2 = fdist(mols[a], mols[b])
-    print d2[0,0,:mols[a].natoms,:mols[b].natoms]
+    start = time.time()
+    ds = fdists(train, test)
 
+    print time.time() - start
 
