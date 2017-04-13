@@ -133,7 +133,7 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
     allocate(atomic_distance(maxval(n1), maxval(n2)))
     atomic_distance(:,:) = 0.0d0
 
-    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni,nj)
+    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni,nj,ja,ia)
     do j = 1, nm2
         nj = n2(j)
         do i = 1, nm1
@@ -144,7 +144,7 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
             do ja = 1, nj
                 do ia = 1, ni
 
-                    atomic_distance(ia,ja) = sqrt(sum((q1(:,ia,i) - q2(:,ja,j))**2))
+                    atomic_distance(ia,ja) = sum((q1(:,ia,i) - q2(:,ja,j))**2)
 
                 enddo
             enddo
@@ -160,6 +160,159 @@ subroutine fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, &
     deallocate(atomic_distance)
 
 end subroutine fget_vector_kernels_gaussian
+
+subroutine fget_vector_kernels_general_gaussian(q1, q2, n1, n2, sigmas, &
+        & nm1, nm2, nsigmas, kernels)
+
+    implicit none
+
+    ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
+    double precision, dimension(:,:,:), intent(in) :: q1
+    double precision, dimension(:,:,:), intent(in) :: q2
+
+    ! List of numbers of atoms in each molecule
+    integer, dimension(:), intent(in) :: n1
+    integer, dimension(:), intent(in) :: n2
+
+    ! Sigma in the Gaussian kernel
+    double precision, dimension(:), intent(in) :: sigmas
+
+    ! Number of molecules
+    integer, intent(in) :: nm1
+    integer, intent(in) :: nm2
+
+    ! Number of sigmas
+    integer, intent(in) :: nsigmas
+
+    ! -1.0 / sigma^2 for use in the kernel
+    double precision, dimension(nsigmas) :: inv_sigma2
+
+    ! Resulting alpha vector
+    double precision, dimension(nsigmas,nm1,nm2), intent(out) :: kernels
+
+    ! Internal counters
+    integer :: i, j, k, ni, nj, ia, ja
+
+    ! Temporary variables necessary for parallelization
+    double precision, allocatable, dimension(:,:) :: atomic_distance
+
+    double precision, allocatable, dimension(:,:) :: kernel1
+    double precision, allocatable, dimension(:,:) :: kernel2
+    logical, allocatable, dimension(:,:) :: kernelmask
+
+    inv_sigma2(:) = -0.5d0 / (sigmas(:))**2
+
+    allocate(kernel1(nsigmas,nm1))
+    allocate(kernel2(nsigmas,nm2))
+
+    kernels = 0.0d0
+    kernel1 = 0.0d0
+    kernel2 = 0.0d0
+
+    allocate(atomic_distance(maxval(n1), maxval(n1)))
+    allocate(kernelmask(maxval(n1), maxval(n1)))
+
+    kernelmask = .true.
+    do i = 1, maxval(n1)
+        kernelmask(i,i) = .false.
+    enddo
+
+    atomic_distance(:,:) = 0.0d0
+
+    write (*,*) "AA"
+    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni)
+    do i = 1, nm1
+        ni = n1(i)
+
+        atomic_distance(:,:) = 0.0d0
+
+        do ja = 1, ni
+            do ia = 1, ni
+
+                atomic_distance(ia,ja) = sum((q1(:,ia,i) - q1(:,ja,i))**2)
+
+            enddo
+        enddo
+
+        do k = 1, nsigmas
+            kernel1(k, i) =  sum(exp(atomic_distance(:ni,:ni) * inv_sigma2(k)), mask=kernelmask(:ni,:ni))
+        enddo
+
+    enddo
+    !$OMP END PARALLEL DO
+
+    deallocate(kernelmask)
+    deallocate(atomic_distance)
+
+
+    allocate(atomic_distance(maxval(n2), maxval(n2)))
+    allocate(kernelmask(maxval(n2), maxval(n2)))
+
+    kernelmask = .true.
+    do i = 1, maxval(n2)
+        kernelmask(i,i) = .false.
+    enddo
+
+    atomic_distance(:,:) = 0.0d0
+
+    write (*,*) "BB"
+    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni)
+    do i = 1, nm2
+        ni = n2(i)
+
+        atomic_distance(:,:) = 0.0d0
+
+        do ja = 1, ni
+            do ia = 1, ni
+
+                atomic_distance(ia,ja) = sum((q2(:,ia,i) - q2(:,ja,i))**2)
+
+            enddo
+        enddo
+
+        do k = 1, nsigmas
+            kernel2(k, i) =  sum(exp(atomic_distance(:ni,:ni) * inv_sigma2(k)), mask=kernelmask(:ni,:ni))
+        enddo
+
+    enddo
+    !$OMP END PARALLEL DO
+
+    deallocate(kernelmask)
+    deallocate(atomic_distance)
+
+    allocate(atomic_distance(maxval(n1), maxval(n2)))
+    atomic_distance(:,:) = 0.0d0
+
+    write (*,*) "AB"
+    !$OMP PARALLEL DO PRIVATE(atomic_distance,ni,nj)
+    do j = 1, nm2
+        nj = n2(j)
+        do i = 1, nm1
+            ni = n1(i)
+
+            atomic_distance(:,:) = 0.0d0
+
+            do ja = 1, nj
+                do ia = 1, ni
+
+                    atomic_distance(ia,ja) = sum((q1(:,ia,i) - q2(:,ja,j))**2)
+
+                enddo
+            enddo
+
+            do k = 1, nsigmas
+                kernels(k, i, j) =  kernel1(k, i) + kernel2(k,j) - 2.0d0 * sum(exp(atomic_distance(:ni,:nj) * inv_sigma2(k)))
+            enddo
+
+        enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    deallocate(atomic_distance)
+    deallocate(kernel1)
+    deallocate(kernel2)
+
+end subroutine fget_vector_kernels_general_gaussian
 
 subroutine fgaussian_kernel(a, na, b, nb, k, sigma)
 
@@ -186,7 +339,7 @@ subroutine fgaussian_kernel(a, na, b, nb, k, sigma)
     do i = 1, nb
         do j = 1, na
             temp(:) = a(:,j) - b(:,i)
-            k(j,i) = exp(inv_sigma * sqrt(sum(temp*temp)))
+            k(j,i) = exp(inv_sigma * sum(temp*temp))
         enddo
     enddo
 !$OMP END PARALLEL DO

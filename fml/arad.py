@@ -25,7 +25,7 @@ import copy
 
 class ARAD(object):
 
-    def __init__(self,maxMolSize = 30,maxAts = 30,cut = 4., debug=False):
+    def __init__(self,maxMolSize = 30,maxAts = 30,cut = 5., debug=False):
         self.tag = 'coords'
         self.debug = debug
         self.maxMolSize = maxMolSize
@@ -145,19 +145,12 @@ class ARAD(object):
             cosAngs = cosAngs#[1:,1:]
             sinAngs = sinAngs#[1:,1:]
 
+            norm = np.sum(1.0 - np.sin(np.pi * D1[np.newaxis,:]/(2.0 * self.cut)))
             M[i,0,: len(D1)] = D1
             M[i,1,: len(D1)] = ocExt[:,0]
             M[i,2,: len(D1)] = ocExt[:,1]
-            M[i,3,: len(D1)] = np.sum(cosAngs,axis = 1)
-            M[i,4,: len(D1)] = np.sum(sinAngs,axis = 1)
-
-            # norm = sum(1.0 - sin(pi * D1[newaxis,:]/(2.0 * self.cut)))
-            # M[i,0,: len(D1)] = D1/norm
-            # M[i,1,: len(D1)] = ocExt[:,0]
-            # M[i,2,: len(D1)] = ocExt[:,1]
-            # M[i,3,: len(D1)] = sum(cosAngs,axis = 1)/(norm**2)
-            # M[i,4,: len(D1)] = sum(sinAngs,axis = 1)/(norm**2)
-            #print M
+            M[i,3,: len(D1)] = np.sum(cosAngs,axis = 1)/(norm)
+            M[i,4,: len(D1)] = np.sum(sinAngs,axis = 1)/(norm)
 
 
         return M

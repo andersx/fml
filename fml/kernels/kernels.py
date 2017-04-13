@@ -32,8 +32,10 @@ from fkernels import fget_prediction_from_distance
 from fkernels import fmanhattan_distance
 from fkernels import fget_vector_kernels_gaussian
 from fkernels import fget_vector_kernels_laplacian
+from fkernels import fget_vector_kernels_general_gaussian
 from farad_kernels import fget_kernels_arad
-from farad_kernels import fget_symmetric_kernels_arad
+from farad_kernels import fget_kernels_arad
+from faras_kernels import fget_kernels_aras
 
 PTP = {\
          1  :[1,1] ,2:  [1,8]#Row1
@@ -61,6 +63,39 @@ PTP = {\
         ,113:[7,3] ,114:[7,4] ,115:[7,5] ,116:[7,6] ,117:[7,7] ,118:[7,8]\
                ,104:[7,10],105:[7,11],106:[7,12],107:[7,13],108:[7,14],109:[7,15],110:[7,16],111:[7,17],112:[7,18]\
         ,89 :[7,19],90: [7,20],91 :[7,21],92 :[7,22],93 :[7,23],94 :[7,24],95 :[7,25],96 :[7,26],97 :[7,27],98 :[7,28],99 :[7,29],100:[7,30],101:[7,31],101:[7,32],102:[7,14],103:[7,33]}
+
+def periodic_distance(a, b, r_width, c_width):
+    """ Calculate stochiometric distance 
+
+        a -- nuclear charge of element a
+        b -- nuclear charge of element b
+        r_width -- sigma in row-direction
+        c_width -- sigma in column direction
+    """
+
+    ra = PTP[int(a)][0]
+    rb = PTP[int(b)][0]
+    ca = PTP[int(a)][1]
+    cb = PTP[int(b)][1]
+
+    return (r_width**2 * c_width**2) / ((r_width**2 + (ra - rb)**2) * (c_width**2 + (ca - cb)**2))
+
+def gen_pd(emax=100, r_width=0.001, c_width=0.001):
+    """ Generate stochiometric ditance matrix
+
+        emax -- Largest element
+        r_width -- sigma in row-direction
+        c_width -- sigma in column direction
+    """
+
+    pd = np.zeros((emax,emax))
+
+    for i in range(emax):
+        for j in range(emax):
+
+            pd[i,j] = periodic_distance(i+1, j+1, r_width, c_width)
+
+    return pd
 
 def get_prediction(Q, Q2, N2, alpha, sigma):
 
@@ -312,32 +347,152 @@ def get_atomic_symmetric_kernels_arad(X1, Z1, sigmas, \
     return fget_symmetric_kernels_arad(X1, Z1_arad, N1, sigmas, \
                 nm1, nsigmas, width, cut_distance, r_width, c_width)
 
-def get_atomic_kernels_laplacian(X1, X2, N1, N2, sigmas):
+def get_atomic_kernels_laplacian(x1, x2, N1, N2, sigmas):
 
-    nm1 = len(N1)
-    nm2 = len(N2)
+     nm1 = len(N1)
+     nm2 = len(N2)
+ 
+     n1 = np.array(N1,dtype=np.int32)
+     n2 = np.array(N2,dtype=np.int32)
+ 
+     nsigmas = len(sigmas)
+     sigmas = np.array(sigmas)
+ 
+     return fget_vector_kernels_laplacian(x1, x2, n1, n2, sigmas, \
+         nm1, nm2, nsigmas)
 
-    N1 = np.array(N1,dtype=np.int32)
-    N2 = np.array(N2,dtype=np.int32)
+     
+# def get_atomic_kernels_gaussian(x1, x2, N1, N2, sigmas):
+#  
+#      nm1 = len(N1)
+#      nm2 = len(N2)
+#  
+#      N1 = np.array(N1,dtype=np.int32)
+#      N2 = np.array(N2,dtype=np.int32)
+#  
+#      nsigmas = len(sigmas)
+#      sigmas = np.array(sigmas)
+#  
+#      return fget_vector_kernels_gaussian(x1, x2, n1, n2, sigmas, \
+#          nm1, nm2, nsigmas)
 
-    nsigmas = len(sigmas)
+def get_atomic_kernels_gaussian(mols1, mols2, sigmas):
 
-    sigmas = np.array(sigmas)
+    n1 = np.array([mol.natoms for mol in mols1], dtype=np.int32)
+    n2 = np.array([mol.natoms for mol in mols2], dtype=np.int32)
 
-    return fget_vector_kernels_laplacian(q1, q2, n1, n2, sigmas, \
-        nm1, nm2, nsigmas)
+    amax1 = np.amax(n1)
+    amax2 = np.amax(n2)
+
+    nm1 = len(mols1)
+    nm2 = len(mols2)
     
-def get_atomic_kernels_gaussian(X1, X2, N1, N2, sigmas):
+    cmat_size = mols1[0].local_coulomb_matrix.shape[1]
 
-    nm1 = len(N1)
-    nm2 = len(N2)
+    x1 = np.zeros((nm1,amax1,cmat_size), dtype=np.float64, order="F")
+    x2 = np.zeros((nm2,amax2,cmat_size), dtype=np.float64, order="F")
+
+    for imol in range(nm1):
+        x1[imol,:n1[imol],:cmat_size] = mols1[imol].local_coulomb_matrix
+
+    for imol in range(nm2):
+        x2[imol,:n2[imol],:cmat_size] = mols2[imol].local_coulomb_matrix
+
+    # Reorder for Fortran speed
+    x1 = np.swapaxes(x1,0,2)
+    x2 = np.swapaxes(x2,0,2)
+
+    nsigmas = len(sigmas)
+
+    sigmas = np.array(sigmas, dtype=np.float64)
+    
+    return fget_vector_kernels_gaussian(x1, x2, n1, n2, sigmas, \
+        nm1, nm2, nsigmas)
+
+def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
+        t_width=np.pi/1.0, d_width=0.2, cut_distance=6.0, r_width=1.0, order=2, c_width=0.5):
+    """ Calculates the Gaussian kernel matrix K for atomic ARAS
+        descriptors for a list of different sigmas.
+
+        K is calculated using an OpenMP parallel Fortran routine.
+
+        Arguments:
+        ==============
+        X1 -- np.array of ARAS descriptors for molecules in set 1.
+        X2 -- np.array of ARAS descriptors for molecules in set 2.
+        Z1 -- List of lists of nuclear charges for molecules in set 1.
+        Z2 -- List of lists of nuclear charges for molecules in set 2.
+        sigmas -- List of sigma for which to calculate the Kernel matrices.
+
+        Returns:
+        ==============
+        K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
+    """
+
+    amax = X1.shape[1]
+
+    assert X1.shape[3] == amax, "ERROR: Check ARAS decriptor sizes! code = 1"
+    assert X2.shape[1] == amax, "ERROR: Check ARAS decriptor sizes! code = 2"
+    assert X2.shape[3] == amax, "ERROR: Check ARAS decriptor sizes! code = 3"
+
+    nm1 = len(Z1)
+    nm2 = len(Z2)
+
+    assert X1.shape[0] == nm1,  "ERROR: Check ARAS decriptor sizes! code = 4"
+    assert X2.shape[0] == nm2,  "ERROR: Check ARAS decriptor sizes! code = 5"
+
+    N1 = []
+    for Z in Z1:
+        N1.append(len(Z))
+
+    N2 = []
+    for Z in Z2:
+        N2.append(len(Z))
 
     N1 = np.array(N1,dtype=np.int32)
     N2 = np.array(N2,dtype=np.int32)
 
     nsigmas = len(sigmas)
+   
+    # 103 is max element in the PTP dictionary
+    pd = gen_pd(emax=103, r_width=r_width, c_width=c_width)
 
     sigmas = np.array(sigmas)
 
-    return fget_vector_kernels_gaussian(q1, q2, n1, n2, sigmas, \
-        nm1, nm2, nsigmas)
+    return fget_kernels_aras(X1, X2, N1, N2, sigmas, \
+                nm1, nm2, nsigmas, t_width, r_width, c_width, d_width, cut_distance, order, pd)
+
+
+# def get_atomic_kernels_general_gaussian(mols1, mols2, sigmas):
+# 
+# 
+#     n1 = np.array([mol.natoms for mol in mols1], dtype=np.int32)
+#     n2 = np.array([mol.natoms for mol in mols2], dtype=np.int32)
+# 
+#     amax1 = np.amax(n1)
+#     amax2 = np.amax(n2)
+# 
+#     nm1 = len(mols1)
+#     nm2 = len(mols2)
+#     
+#     cmat_size = mols1[0].local_coulomb_matrix.shape[1]
+# 
+#     x1 = np.zeros((cmat_size,amax1,nm1), dtype=np.float64)
+#     x2 = np.zeros((cmat_size,amax2,nm2), dtype=np.float64)
+# 
+#     for imol in range(nm1):
+#         for iatom in range(n1[imol]):
+#             for j in range(cmat_size):
+#                 x1[j,iatom,imol] += mols1[imol].local_coulomb_matrix[iatom][j]
+# 
+#     for imol in range(nm2):
+#         for iatom in range(n2[imol]):
+#             for j in range(cmat_size):
+#                 x2[j,iatom,imol] += mols2[imol].local_coulomb_matrix[iatom][j]
+# 
+#     nsigmas = len(sigmas)
+# 
+#     sigmas = np.array(sigmas, dtype=np.float64)
+#     
+#     return fget_vector_kernels_general_gaussian(x1, x2, n1, n2, sigmas, \
+#         nm1, nm2, nsigmas)

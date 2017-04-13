@@ -3,6 +3,7 @@ OBJECTS = \
 			fml/math/fdistance.so \
 			fml/math/farad.so \
 			fml/kernels/farad_kernels.so \
+			fml/kernels/faras_kernels.so \
 			fml/kernels/fkernels.so \
 			fml/kernels/fforce_kernels.so \
 			fml/representations/frepresentations.so
@@ -51,6 +52,10 @@ fml/math/farad.so: fml/math/farad.f90
 fml/kernels/farad_kernels.so: fml/kernels/farad_kernels.f90
 	$(F2PY_EXEC) -c -m farad_kernels fml/kernels/farad_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)  $(MKL_LINKER_FLAGS)
 	mv farad_kernels*.so fml/kernels/farad_kernels.so
+
+fml/kernels/faras_kernels.so: fml/kernels/faras_kernels.f90
+	$(F2PY_EXEC) -c -m faras_kernels fml/kernels/faras_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)  $(MKL_LINKER_FLAGS)
+	mv faras_kernels*.so fml/kernels/faras_kernels.so
 
 fml/kernels/fkernels.so: fml/kernels/fkernels.f90
 	$(F2PY_EXEC) -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)

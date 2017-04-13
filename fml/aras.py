@@ -25,7 +25,7 @@ from copy import copy
 
 class ARAS(object):
    
-    def __init__(self,maxMolSize = 30,maxAts = 30,cut = 4., debug=False):
+    def __init__(self,maxMolSize = 30,maxAts = 30,cut = 5., debug=False):
         self.tag = 'coords'
         self.debug = debug
         self.maxMolSize = maxMolSize
@@ -64,7 +64,7 @@ class ARAS(object):
         L = len(coords)
         coords = asarray(coords)
         ocupationList = asarray(ocupationList)
-        M =  zeros((self.maxMolSize,4+self.maxAts,self.maxAts))       
+        M =  zeros((self.maxMolSize,3+self.maxAts,self.maxAts))
        
         if cell is not None:
             coords = dot(coords,cell)
@@ -95,7 +95,8 @@ class ARAS(object):
             #Calculate Distance
             cD = - coords[i] + coordsExt[:]
            
-            ocExt =  asarray([self.PTP[o] for o in  ocupationListExt])
+            # ocExt =  asarray([self.PTP[o] for o in  ocupationListExt])
+            ocExt =  asarray(ocupationListExt)
            
            
             #Obtaining angles
@@ -112,19 +113,16 @@ class ARAS(object):
             angs = angs[args,:]
             angs = angs[:,args]
            
-            args = where(D1 < self.cut)[0]
+            # args = where(D1 < self.cut)[0]
 
-            D1 = D1[args]
-            ocExt = asarray([ocExt[l] for l in args])
-            angs = angs[args,:]
-            angs = angs[:,args]
+            # D1 = D1[args]
+            # ocExt = asarray([ocExt[l] for l in args])
+            # angs = angs[args,:]
+            # angs = angs[:,args]
 
-            #norm = sum(1. - sin(pi * D1[newaxis,:]/(2. * self.cut)))
-           
             M[i,0,: len(D1)] = D1
-            M[i,1,: len(D1)] = ocExt[:,0]
-            M[i,2,: len(D1)] = ocExt[:,1]
+            M[i,1,: len(D1)] = ocExt[:]
+            # M[i,2,: len(D1)] = ocExt[:,1]
             M[i,3: len(D1) + 3,: len(D1)] = angs
-
-                   
+        
         return M

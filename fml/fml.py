@@ -47,6 +47,7 @@ class Molecule:
         self.natoms = -1
         self.energy = float("nan")
         self.molid = -1
+        self.name = None
         self.dftb3_energy = float("nan")
         self.dftb3_hof = float("nan")
 
