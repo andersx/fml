@@ -40,15 +40,15 @@ function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, &
     integer :: i, m, p1, p2
 
     double precision :: angular 
-    double precision :: angular2
+    ! double precision :: angular2
 
-    double precision :: dcos1, dcos2, dsin1, dsin2
+    ! double precision :: dcos1, dcos2, dsin1, dsin2
     double precision :: maxgausdist2
 
     integer :: pmax1
     integer :: pmax2
 
-    double precision :: inv_width, diff, dist
+    double precision :: inv_width !, diff, dist
     double precision :: c_width2, r_width2, r2
 
     double precision, dimension(order) :: s
@@ -64,8 +64,8 @@ function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, &
     double precision :: temp, sin1_temp, cos1_temp
 
 
-    pmax1 = maxval(x1(2,:))
-    pmax2 = maxval(x2(2,:))
+    pmax1 = int(maxval(x1(2,:)))
+    pmax2 = int(maxval(x2(2,:)))
 
     allocate(mask1(pmax1))
     allocate(mask2(pmax2))
@@ -74,11 +74,11 @@ function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, &
     mask2 = .true.
 
     do i = 1, n1
-        mask1(x1(2,i)) = .false.
+        mask1(int(x1(2,i))) = .false.
     enddo
         
     do i = 1, n2
-        mask2(x2(2,i)) = .false.
+        mask2(int(x2(2,i))) = .false.
     enddo
 
     do m = 1, order
@@ -105,7 +105,8 @@ function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, &
 
             if (r2 < maxgausdist2) then
 
-                d = exp(r2 * inv_width )  * ksi1(m_1) * ksi2(m_2) * pd(int(x1(2,m_1)), int(x2(2,m_2)))
+                d = exp(r2 * inv_width )  * ksi1(m_1) * ksi2(m_2) * &
+                    & pd(int(x1(2,m_1)), int(x2(2,m_2)))
 
                 angular = a0 * a0
                 
@@ -351,10 +352,11 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
                 do j_1 = 1, nj
 
                     l2dist = atomic_distl2(x1(i,i_1,:,:), x2(j,j_1,:,:), n1(i), n2(j), &
-                        & ksi1(i,i_1,:), ksi2(j,j_1,:), sinp1(i,i_1,:,:,:), sinp2(j,j_1,:,:,:), cosp1(i,i_1,:,:,:), cosp2(j,j_1,:,:,:), &
+                        & ksi1(i,i_1,:), ksi2(j,j_1,:), sinp1(i,i_1,:,:,:), sinp2(j,j_1,:,:,:), &
+                        & cosp1(i,i_1,:,:,:), cosp2(j,j_1,:,:,:), &
                         & t_width, r_width, c_width, d_width, cut_distance, order, pd)
 
-                    l2dist = selfl21(i,i_1) + selfl22(j,j_1) - 2.0d0 * l2dist * pd(x1(i,i_1,2,1),x2(j,j_1,2,1))
+                    l2dist = selfl21(i,i_1) + selfl22(j,j_1) - 2.0d0 * l2dist * pd(int(x1(i,i_1,2,1)),int(x2(j,j_1,2,1)))
 
                     if (abs(l2dist) < eps) l2dist = 0.0d0
 
