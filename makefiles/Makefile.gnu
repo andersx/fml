@@ -1,0 +1,62 @@
+OBJECTS = \
+		fml/math/fcho_solve.so \
+			fml/math/fdistance.so \
+			fml/math/farad.so \
+			fml/kernels/farad_kernels.so \
+			fml/kernels/faras_kernels.so \
+			fml/kernels/fkernels.so \
+			fml/kernels/fforce_kernels.so \
+			fml/representations/frepresentations.so
+
+# Flags for GCC compilers and system BLAS/LAPACK
+COMPILER_FLAGS = --opt='-O3 -fopenmp -O3 -m64 -march=native' --f90flags=''
+LINKER_FLAGS = -lgomp -lpthread -lm -ldl
+MKL_LINKER_FLAGS = -lblas -llapack
+
+F2PY_EXEC = f2py
+
+all: $(OBJECTS)
+
+fml/math/fcho_solve.so: fml/math/fcho_solve.f90
+	$(F2PY_EXEC) -c -m fcho_solve fml/math/fcho_solve.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
+	mv fcho_solve*.so fml/math/fcho_solve.so
+
+fml/math/fdistance.so: fml/math/fdistance.f90
+	$(F2PY_EXEC) -c -m fdistance fml/math/fdistance.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	mv fdistance*.so fml/math/fdistance.so
+
+fml/math/farad.so: fml/math/farad.f90
+	$(F2PY_EXEC) -c -m farad fml/math/farad.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	mv farad*.so fml/math/farad.so
+
+fml/kernels/farad_kernels.so: fml/kernels/farad_kernels.f90
+	$(F2PY_EXEC) -c -m farad_kernels fml/kernels/farad_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)  $(MKL_LINKER_FLAGS)
+	mv farad_kernels*.so fml/kernels/farad_kernels.so
+
+fml/kernels/faras_kernels.so: fml/kernels/faras_kernels.f90
+	$(F2PY_EXEC) -c -m faras_kernels fml/kernels/faras_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)  $(MKL_LINKER_FLAGS)
+	mv faras_kernels*.so fml/kernels/faras_kernels.so
+
+fml/kernels/fkernels.so: fml/kernels/fkernels.f90
+	$(F2PY_EXEC) -c -m fkernels fml/kernels/fkernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
+	mv fkernels*.so fml/kernels/fkernels.so
+
+fml/kernels/fforce_kernels.so: fml/kernels/fforce_kernels.f90
+	$(F2PY_EXEC) -c -m fforce_kernels fml/kernels/fforce_kernels.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS) $(MKL_LINKER_FLAGS)
+	mv fforce_kernels*.so fml/kernels/fforce_kernels.so
+
+fml/representations/frepresentations.so: fml/representations/frepresentations.f90
+	$(F2PY_EXEC) -c -m frepresentations fml/representations/frepresentations.f90 $(COMPILER_FLAGS) $(LINKER_FLAGS)
+	mv frepresentations*.so fml/representations/frepresentations.so
+clean:
+	rm -f fml/*.pyc
+	rm -f fml/math/*.so
+	rm -f fml/math/*.pyc
+	rm -f fml/kernels/*.so
+	rm -f fml/kernels/*.pyc
+	rm -f fml/representations/*.so
+	rm -f fml/representations/*.pyc
+	rm -f pgopti.dpi pgopti.dpi.lock *.dyn
+
+test:
+	tests/test_arad.py
