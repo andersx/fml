@@ -1,18 +1,17 @@
 OBJECTS = \
-		fml/math/fcho_solve.so \
-			fml/math/fdistance.so \
-			fml/math/farad.so \
-			fml/kernels/farad_kernels.so \
-			fml/kernels/faras_kernels.so \
-			fml/kernels/fkernels.so \
-			fml/kernels/fforce_kernels.so \
-			fml/representations/frepresentations.so
+	fml/math/fcho_solve.so \
+	fml/math/fdistance.so \
+	fml/math/farad.so \
+	fml/kernels/farad_kernels.so \
+	fml/kernels/faras_kernels.so \
+	fml/kernels/fkernels.so \
+	fml/kernels/fforce_kernels.so \
+	fml/representations/frepresentations.so
 
 # Flags for Ifort and MKL
 COMPILER_FLAGS = --fcompiler=intelem \
-					   --opt='-xHost -O3 -axAVX -qopenmp -funroll-loops -qopt-prefetch' \
-					   --f77flags='-I${MKLROOT}/include' \
-					   --f90flags='-I${MKLROOT}/include'
+	--opt='-xHost -O3 -axAVX -qopenmp -funroll-loops -qopt-prefetch' \
+	--f77flags='-I${MKLROOT}/include' --f90flags='-I${MKLROOT}/include'
 LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
 MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
 

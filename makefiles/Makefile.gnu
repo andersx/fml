@@ -1,12 +1,12 @@
 OBJECTS = \
-		fml/math/fcho_solve.so \
-			fml/math/fdistance.so \
-			fml/math/farad.so \
-			fml/kernels/farad_kernels.so \
-			fml/kernels/faras_kernels.so \
-			fml/kernels/fkernels.so \
-			fml/kernels/fforce_kernels.so \
-			fml/representations/frepresentations.so
+	fml/math/fcho_solve.so \
+	fml/math/fdistance.so \
+	fml/math/farad.so \
+	fml/kernels/farad_kernels.so \
+	fml/kernels/faras_kernels.so \
+	fml/kernels/fkernels.so \
+	fml/kernels/fforce_kernels.so \
+	fml/representations/frepresentations.so
 
 # Flags for GCC compilers and system BLAS/LAPACK
 COMPILER_FLAGS = --opt='-O3 -fopenmp -O3 -m64 -march=native' --f90flags=''
