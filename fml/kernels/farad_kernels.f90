@@ -82,6 +82,7 @@ function atomic_distl2(X1, X2, N1, N2, sin1, sin2, width, cut_distance, r_width,
 
                 aadist = aadist + d * (1.0d0 + x1(4,m_1)*x2(4,m_2) + x1(5,m_1)*x2(5,m_2))
 
+                ! write (*,*) m_1, m_2, x1(4,m_1), x2(4,m_2)
             end if
         end do
     end do
@@ -512,12 +513,19 @@ subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, 
     allocate(sin1(nm1, maxval(n1), maxval(n1)))
     allocate(sin2(nm2, maxval(n2), maxval(n2)))
 
+    sin1 = 0.0d0
+    sin2 = 0.0d0
+
+    ! write (*,*) "INV_CUT", inv_cut
+
     !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, nm1
         ni = n1(i)
         do m_1 = 1, ni
             do i_1 = 1, ni
-                sin1(i, i_1, m_1) = 1.0d0 - sin(q1(i,i_1,1,m_1) * inv_cut)
+                if (q1(i,i_1,1,m_1) < cut_distance) then
+                    sin1(i, i_1, m_1) = 1.0d0 - sin(q1(i,i_1,1,m_1) * inv_cut)
+                endif
             enddo
         enddo
     enddo
@@ -528,7 +536,9 @@ subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, 
         ni = n2(i)
         do m_1 = 1, ni
             do i_1 = 1, ni
-                sin2(i, i_1, m_1) = 1.0d0 - sin(q2(i,i_1,1,m_1) * inv_cut)
+                if (q2(i,i_1,1,m_1) < cut_distance) then
+                    sin2(i, i_1, m_1) = 1.0d0 - sin(q2(i,i_1,1,m_1) * inv_cut)
+                endif
             enddo
         enddo
     enddo
@@ -584,6 +594,7 @@ subroutine fget_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, nm1, nm2, nsigmas, 
                     if (abs(l2dist) < eps) l2dist = 0.0d0
 
                     atomic_distance(i_1,j_1) = l2dist
+                    ! write (*,*) i_1, j_1, l2dist
 
                 enddo
             enddo
@@ -819,6 +830,8 @@ subroutine fget_atomic_kernels_arad(q1, q2, z1, z2, n1, n2, sigmas, na1, na2, ns
 
     allocate(sin1(na1, maxval(n1)))
     allocate(sin2(na2, maxval(n2)))
+
+    write (*,*) "INV_CUT", inv_cut
 
     !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, na1
