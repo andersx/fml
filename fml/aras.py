@@ -21,9 +21,16 @@
 # SOFTWARE.
 
 from numpy import *
+import numpy as np
 from copy import copy
 
 class ARAS(object):
+
+    def getAngle(self,sp,norms):
+        angles = np.zeros(sp.shape)
+        mask1 = np.logical_and(np.abs(sp - norms) > self.epsilon ,np.abs(norms) > self.epsilon)
+        angles[mask1] = np.arccos(sp[mask1]/norms[mask1])
+        return angles
    
     def __init__(self,maxMolSize = 30,maxAts = 30,cut = 5., debug=False):
         self.tag = 'coords'
@@ -31,7 +38,7 @@ class ARAS(object):
         self.maxMolSize = maxMolSize
         self.maxAts = maxAts
         self.cut = cut
-        set_printoptions(threshold= 'nan')
+        self.epsilon = 100.0 * np.finfo(float).eps
    
         self.PTP = {\
             1  :[1,1] ,2:  [1,8]#Row1
@@ -95,34 +102,22 @@ class ARAS(object):
             #Calculate Distance
             cD = - coords[i] + coordsExt[:]
            
-            # ocExt =  asarray([self.PTP[o] for o in  ocupationListExt])
             ocExt =  asarray(ocupationListExt)
            
-           
             #Obtaining angles
-            angs = sum(cD[:,newaxis] * cD[newaxis,:], axis = 2)
+            sp = sum(cD[:,newaxis] * cD[newaxis,:], axis = 2)
             D1 = sqrt(sum(cD**2, axis = 1))
             D2 = D1[:,newaxis]*D1[newaxis,:] 
-            #print D2.shape
-            angs = arccos((angs + 10**-9)/(D2 + 10**-9))
+            angs = self.getAngle(sp, D2)
 
-            angs = nan_to_num(angs)
             args = argsort(D1)
             D1 = D1[args]
             ocExt = asarray([ocExt[l] for l in args])
             angs = angs[args,:]
             angs = angs[:,args]
            
-            # args = where(D1 < self.cut)[0]
-
-            # D1 = D1[args]
-            # ocExt = asarray([ocExt[l] for l in args])
-            # angs = angs[args,:]
-            # angs = angs[:,args]
-
             M[i,0,: len(D1)] = D1
             M[i,1,: len(D1)] = ocExt[:]
-            # M[i,2,: len(D1)] = ocExt[:,1]
             M[i,3: len(D1) + 3,: len(D1)] = angs
         
         return M

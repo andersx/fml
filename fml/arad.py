@@ -23,7 +23,15 @@
 import numpy as np
 import copy
 
+
 class ARAD(object):
+
+    def getAngle(self,sp,norms):
+        angles = np.zeros(sp.shape)
+        mask1 = np.logical_and(np.abs(sp - norms) > self.epsilon ,np.abs(norms) > self.epsilon)
+        angles[mask1] = np.arccos(sp[mask1]/norms[mask1])
+        return angles
+
 
     def __init__(self,maxMolSize = 30,maxAts = 30,cut = 5., debug=False):
         self.tag = 'coords'
@@ -31,7 +39,7 @@ class ARAD(object):
         self.maxMolSize = maxMolSize
         self.maxAts = maxAts
         self.cut = cut
-
+        self.epsilon = 100.0 * np.finfo(float).eps
         self.PTP = {\
             1  :[1,1] ,2:  [1,8]#Row1
 
@@ -67,15 +75,10 @@ class ARAD(object):
 
         if cell is not None:
             coords = np.dot(coords,cell)
-            #print cell
             nExtend = (np.floor(self.cut/np.linalg.norm(cell,2,axis = 0)) + 1).astype(int)
-            #print nExtend
             for i in range(-nExtend[0],nExtend[0] + 1):
                 for j in range(-nExtend[1],nExtend[1] + 1):
                     for k in range(-nExtend[2],nExtend[2] + 1):
-
-                        #print i, j, k
-                        #print i*cell[0,:] + j*cell[1,:] + k*cell[2,:]
                         if i == -nExtend[0] and j  == -nExtend[1] and k  == -nExtend[2]:
                             coordsExt = coords + i*cell[0,:] + j*cell[1,:] + k*cell[2,:]
                             ocupationListExt = copy.copy(ocupationList)
@@ -90,28 +93,21 @@ class ARAD(object):
         M[:,0,:] = 1E+100
 
         for i in range(L):
-            #print '+'
             #Calculate Distance
             cD = - coords[i] + coordsExt[:]
-
             ocExt =  np.asarray([self.PTP[o] for o in  ocupationListExt])
 
-
             #Obtaining angles
-            angs = np.sum(cD[:,np.newaxis] * cD[np.newaxis,:], axis = 2)
+            sp = np.sum(cD[:,np.newaxis] * cD[np.newaxis,:], axis = 2)
             D1 = np.sqrt(np.sum(cD**2, axis = 1))
             D2 = D1[:,np.newaxis]*D1[np.newaxis,:]
-            #print D2.shape
-            angs = np.arccos((angs + 10**-12)/(D2 + 10**-12))
-
-            angs = np.nan_to_num(angs)
-
+            angs2 = np.arccos((sp + 10**-12)/(D2 + 10**-12))
+            angs2 = np.nan_to_num(angs2)
+            angs = self.getAngle(sp, D2)
 
             #Obtaining cos and sine terms
-            cosAngs = np.cos(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut))) #cos(pi * D1[newaxis,:]/(2 * self.cut))
-            sinAngs = np.sin(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut))) #cos(pi * D1[newaxis,:]/(2 * self.cut))
-
-
+            cosAngs = np.cos(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut)))
+            sinAngs = np.sin(angs) * (1. - np.sin(np.pi * D1[np.newaxis,:]/(2. * self.cut)))
 
             args = np.argsort(D1)
 
@@ -125,25 +121,20 @@ class ARAD(object):
             sinAngs = sinAngs[:,args]
 
             args = np.where(D1 < self.cut)[0]
-            #print args
 
             D1 = D1[args]
-            #print D1#[:50]
 
             ocExt = np.asarray([ocExt[l] for l in args])
-
-            #cosAngs = asarray([[cosAngs[k,l] for l in args] for k in args])
-            #sinAngs = asarray([[sinAngs[k,l] for l in args] for k in args])
 
             cosAngs = cosAngs[args,:]
             cosAngs = cosAngs[:,args]
             sinAngs = sinAngs[args,:]
             sinAngs = sinAngs[:,args]
 
-            D1 = D1#[1:]
-            ocExt = ocExt#[1:]
-            cosAngs = cosAngs#[1:,1:]
-            sinAngs = sinAngs#[1:,1:]
+            D1 = D1
+            ocExt = ocExt
+            cosAngs = cosAngs
+            sinAngs = sinAngs
 
             norm = np.sum(1.0 - np.sin(np.pi * D1[np.newaxis,:]/(2.0 * self.cut)))
             M[i,0,: len(D1)] = D1
