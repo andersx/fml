@@ -410,7 +410,8 @@ def get_atomic_kernels_gaussian(mols1, mols2, sigmas):
         nm1, nm2, nsigmas)
 
 def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
-        t_width=np.pi/1.0, d_width=0.2, cut_distance=6.0, r_width=1.0, order=2, c_width=0.5):
+        t_width=np.pi/1.0, d_width=0.2, cut_distance=6.0, \
+        r_width=1.0, order=2, c_width=0.5, scale_angular=0.1):
     """ Calculates the Gaussian kernel matrix K for atomic ARAS
         descriptors for a list of different sigmas.
 
@@ -460,7 +461,8 @@ def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
     sigmas = np.array(sigmas)
 
     return fget_kernels_aras(X1, X2, N1, N2, sigmas, \
-                nm1, nm2, nsigmas, t_width, r_width, c_width, d_width, cut_distance, order, pd)
+                nm1, nm2, nsigmas, t_width, r_width, \
+                c_width, d_width, cut_distance, order, pd, scale_angular)
 
 
 # def get_atomic_kernels_general_gaussian(mols1, mols2, sigmas):
