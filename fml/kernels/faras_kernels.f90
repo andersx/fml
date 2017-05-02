@@ -267,7 +267,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         pmax1 = max(pmax1, int(maxval(x1(a,1,2,:n1(a)))))
     enddo
     do a = 1, nm2
-        pmax2 = max(pmax2, int(maxval(x2(a,1,2,:n1(a)))))
+        pmax2 = max(pmax2, int(maxval(x2(a,1,2,:n2(a)))))
     enddo
 
 
