@@ -33,47 +33,35 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
     double precision, dimension(:,:), intent(in) :: pd
     double precision, intent(in) :: angular_scale
 
-
     double precision :: aadist
 
     double precision :: d
 
     integer :: m_1, m_2
 
-    integer :: i, m, p1, p2, n
+    integer :: i, m, p1, p2
 
     double precision :: angular 
-    ! double precision :: angular2
-
-    ! double precision :: dcos1, dcos2, dsin1, dsin2
     double precision :: maxgausdist2
 
     integer :: pmax1
     integer :: pmax2
 
-    double precision :: inv_width !, diff, dist
+    double precision :: inv_width
     double precision :: c_width2, r_width2, r2
 
     double precision, dimension(order) :: s
     
     double precision, parameter :: pi = 4.0d0 * atan(1.0d0)
 
-    ! double precision, parameter :: g1 = 2.0d0
-    ! double precision, parameter :: a0 = g1 / 2.0d0
     double precision :: g1 
     double precision :: a0 
 
     logical, allocatable, dimension(:) :: mask1
     logical, allocatable, dimension(:) :: mask2
 
-    double precision :: temp, sin1_temp, cos1_temp, ang_norm1
-
+    double precision :: temp, sin1_temp, cos1_temp
     double precision, intent(in):: ang_norm2
-    
-    double precision :: cos_sum1, cos_sum2
-
-
-    ! write(*,*) "ANG_NORM", t_width, ang_norm2
 
     pmax1 = int(maxval(x1(2,:)))
     pmax2 = int(maxval(x2(2,:)))
@@ -94,12 +82,9 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
 
     a0 = 0.0d0
     g1 = sqrt(2.0d0 * pi)/ang_norm2
-    ! g1 = 1.0d0/ang_norm2
-    ! g1 = pi/ang_norm2
 
     do m = 1, order
         s(m) = g1 * exp(-(t_width * m)**2 / 2.0d0)
-        ! write (*,*) "S(M)", m, s(m)
     enddo 
 
     inv_width = -1.0d0 / (4.0d0 * d_width**2)
@@ -110,17 +95,11 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
 
     aadist = pd(int(x1(2,1)), int(x2(2,1)))
 
-    ! ang_norm1 = 1.0d0 / (sum(ksi1(:N1)) * sum(ksi2(:N2)))
-
-    ! write (*,*) "ANG_NORM1", ang_norm1, sum(ksi1(:N1)), sum(ksi2(:N2))
-
     do m_1 = 2, N1
 
         if (X1(1, m_1) > cut_distance) exit
 
         do m_2 = 2, N2
-
-            ! if ((m_1.eq.1).and.(m_2.eq.1)) cycle
 
             if (X2(1, m_2) > cut_distance) exit
 
@@ -155,7 +134,6 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
 
                 aadist = aadist + d * (ksi1(m_1) * ksi2(m_2) + angular &
                 & * angular_scale)
-                !aadist = aadist + d * (ksi1(m_1) * ksi2(m_2))
 
             end if
         end do
@@ -216,7 +194,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     integer :: i, j, k, ni, nj
     integer :: m_1, i_1, j_1, a, m, n, m_2
 
-
     ! Pre-computed constants
     double precision :: r_width2
     double precision :: c_width2
@@ -261,13 +238,10 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     ang_norm2 = 0.0d0
 
     do n = -10000, 10000
-        ! ang_norm2 = ang_norm2 + t_width**2 * 2.0d0 * pi &
-        ! & * exp(-((t_width * n)**2)) * (2.0d0 - 2.0d0 * cos(n * pi))
         ang_norm2 = ang_norm2 + exp(-((t_width * n)**2)) * (2.0d0 - 2.0d0 * cos(n * pi))
     end do
-    ! ang_norm2 = sqrt(ang_norm2)
+
     ang_norm2 = sqrt(ang_norm2 * pi) * 2.0d0
-    ! write(*,*) "ANGNORM", ang_norm2
 
     pmax1 = 0
     pmax2 = 0
@@ -278,7 +252,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     do a = 1, nm2
         pmax2 = max(pmax2, int(maxval(x2(a,1,2,:n2(a)))))
     enddo
-
 
     r_width2 = r_width**2
     c_width2 = c_width**2
@@ -292,18 +265,14 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     ksi1 = 0.0d0
     ksi2 = 0.0d0
 
-    ! write (*,*) "INV_CUT", inv_cut
-
     !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, nm1
         ni = n1(i)
         do m_1 = 2, ni
             do i_1 = 1, ni
                 if (x1(i,i_1,1,m_1) < cut_distance) then
-                    ! ksi1(i, i_1, m_1) = 1.0d0 - sin(x1(i,i_1,1,m_1) * inv_cut)
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
                     & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
-                    ! write(*,*) "KSI1", i, i_1, m_1, ksi1(i, i_1, m_1)
                 endif
             enddo
         enddo
@@ -316,7 +285,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         do m_1 = 2, ni
             do i_1 = 1, ni
                 if (x2(i,i_1,1,m_1) < cut_distance) then
-                    ! ksi2(i, i_1, m_1) = 1.0d0 - sin(x2(i,i_1,1,m_1) * inv_cut)
                     ksi2(i, i_1, m_1) = 1.0d0 / x2(i,i_1,1,m_1)**6 &
                     & * x2(i,i_1,2,1) * x2(i,i_1,2,m_1) 
                 endif
@@ -346,18 +314,12 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
 
                     dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
 
-                    !cosi = sqrt(1.0d0 - (dj * sin(angleij)/dij)**2) 
-                    !cosj = sqrt(1.0d0 - (di * sin(angleij)/dij)**2) 
-
                     cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
                     cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
-
-                    ! ksi31(i,i_1,m_1,m_2) = (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                     ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
                     & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
-                    ! write(*,*) "KSI31", i, i_1, m_1, m_2, ksi31(i, i_1, m_1, m_2)
                 enddo
             enddo
         enddo
@@ -378,13 +340,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
 
                     dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
 
-                    ! cosi = sqrt(1.0d0 - (dj * sin(angleij)/dij)**2) 
-                    ! cosj = sqrt(1.0d0 - (di * sin(angleij)/dij)**2) 
-
                     cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
                     cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
-
-                    ! ksi32(i,i_1,m_1,m_2) = (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                     ksi32(i,i_1,m_1,m_2) = x2(i,i_1,2,1) * x2(i,i_1,2,m_1) * x2(i,i_1,2,m_2) * &
                     & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
@@ -409,20 +366,14 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
                     do k = 1, ni
                         if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
                         p =  int(x1(a,i,2,k))
-                        ! cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + cos(m * x1(a,i,j+3,k))
-                        ! sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + sin(m * x1(a,i,j+3,k))
                         theta = x1(a,i,j+3,k)
                         cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
                             & (cos(m * theta) - cos((theta + pi) * m))*ksi31(a,i,j,k)
-    
-            !write (*,*) "COS1", j,k, (cos(m * theta) - cos((theta + pi) * m))*ksi1(a,i,k)
-
                         sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
                             & (sin(m * theta) - sin((theta + pi) * m))*ksi31(a,i,j,k)
 
                         endif
                     enddo
-                    ! write (*,*) "COS1", cosp1(a, i, m, j, p)
                 enddo
             enddo
         enddo
@@ -442,8 +393,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
                     do k = 1, ni
                         if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
                         p =  int(x2(a,i,2,k))
-                        ! cosp2(a, i, m, j, p) = cosp2(a, i, m, j, p) + cos(m * x2(a,i,j+3,k))
-                        ! sinp2(a, i, m, j, p) = sinp2(a, i, m, j, p) + sin(m * x2(a,i,j+3,k))
                         theta = x2(a,i,j+3,k)
                         cosp2(a, i, m, j, p) = cosp2(a, i, m, j, p) + &
                             & (cos(m * theta) - cos((theta + pi) * m)) * ksi32(a,i,j,k)
@@ -466,7 +415,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
             selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), n1(i), n1(i), &
                 & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
             & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
-            !    & t_width, r_width, c_width, d_width, cut_distance, order, pd)
         enddo
     enddo
     !$OMP END PARALLEL DO
@@ -488,7 +436,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     kernels(:,:,:) = 0.0d0
     atomic_distance(:,:) = 0.0d0
 
-    !$OMP PARALLEL DO PRIVATE(l2dist,atomic_distance,ni,nj)
+    !$OMP PARALLEL DO schedule(dynamic) PRIVATE(l2dist,atomic_distance,ni,nj)
     do j = 1, nm2
         nj = n2(j)
         do i = 1, nm1
@@ -510,7 +458,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
 
                     atomic_distance(i_1,j_1) = l2dist
                     
-                        ! write (*,*) i_1, j_1, l2dist
                 enddo
             enddo
 
@@ -535,3 +482,240 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     deallocate(sinp2)
 
 end subroutine fget_kernels_aras
+
+
+subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
+       & t_width, r_width, c_width, d_width, cut_distance, order, pd, &
+       & angular_scale, kernels)
+
+    use aras_utils, only: atomic_distl2
+
+    implicit none
+
+    ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
+    double precision, dimension(:,:,:,:), intent(in) :: x1
+
+    ! List of numbers of atoms in each molecule
+    integer, dimension(:), intent(in) :: n1
+
+    ! Sigma in the Gaussian kernel
+    double precision, dimension(:), intent(in) :: sigmas
+
+    ! Number of molecules
+    integer, intent(in) :: nm1
+
+    ! Number of sigmas
+    integer, intent(in) :: nsigmas
+
+    double precision, intent(in) :: t_width
+    double precision, intent(in) :: r_width
+    double precision, intent(in) :: c_width 
+    double precision, intent(in) :: d_width 
+    double precision, intent(in) :: cut_distance
+    integer, intent(in) :: order
+    double precision, intent(in) :: angular_scale
+
+    ! -1.0 / sigma^2 for use in the kernel
+    double precision, dimension(nsigmas) :: inv_sigma2
+
+    double precision, dimension(:,:), intent(in) :: pd
+
+    ! Resulting alpha vector
+    double precision, dimension(nsigmas,nm1,nm1), intent(out) :: kernels
+
+    ! Internal counters
+    integer :: i, j, k, ni, nj
+    integer :: m_1, i_1, j_1, a, m, n, m_2
+
+
+    ! Pre-computed constants
+    double precision :: r_width2
+    double precision :: c_width2
+    double precision :: inv_cut
+    
+    double precision :: di, dj, dij, angleij, cosi, cosj
+
+    ! Temporary variables necessary for parallelization
+    double precision :: l2dist
+    double precision, allocatable, dimension(:,:) :: atomic_distance
+
+    ! Pre-computed terms in the full distance matrix
+    double precision, allocatable, dimension(:,:) :: selfl21
+
+    ! Pre-computed terms
+    double precision, allocatable, dimension(:,:,:) :: ksi1
+
+    ! Pre-computed terms
+    double precision, allocatable, dimension(:,:,:,:) :: ksi31
+
+    double precision, allocatable, dimension(:,:,:,:,:) :: sinp1
+    double precision, allocatable, dimension(:,:,:,:,:) :: cosp1
+
+    ! Value of PI at full FORTRAN precision.
+    double precision, parameter :: pi = 4.0d0 * atan(1.0d0)
+
+    ! Small number // to test for numerical stability
+    double precision, parameter :: eps = 5.0d-12
+
+    ! counter for periodic distance
+    integer :: p
+    integer :: pmax1
+    double precision :: theta
+
+    double precision :: ang_norm2
+    ang_norm2 = 0.0d0
+
+    do n = -10000, 10000
+        ang_norm2 = ang_norm2 + exp(-((t_width * n)**2)) * (2.0d0 - 2.0d0 * cos(n * pi))
+    end do
+
+    ang_norm2 = sqrt(ang_norm2 * pi) * 2.0d0
+
+    pmax1 = 0
+
+    do a = 1, nm1
+        pmax1 = max(pmax1, int(maxval(x1(a,1,2,:n1(a)))))
+    enddo
+
+    r_width2 = r_width**2
+    c_width2 = c_width**2
+
+    inv_cut = pi / (2.0d0 * cut_distance)
+    inv_sigma2(:) = -1.0d0 / (sigmas(:))**2
+
+    allocate(ksi1(nm1, maxval(n1), maxval(n1)))
+
+    ksi1 = 0.0d0
+
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm1
+        ni = n1(i)
+        do m_1 = 2, ni
+            do i_1 = 1, ni
+                if (x1(i,i_1,1,m_1) < cut_distance) then
+                    ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
+                    & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
+                endif
+            enddo
+        enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    allocate(ksi31(nm1, maxval(n1), maxval(n1), maxval(n1)))
+
+    ksi31 = 0.0d0
+
+    
+    do i = 1, nm1
+        ni = n1(i)
+        do m_2 = 2, ni
+            do m_1 = 2, ni
+                do i_1 = 1, ni
+
+                    if (m_2.eq.m_1) cycle 
+
+                    di = x1(i, i_1, 1, m_1)
+                    dj = x1(i, i_1, 1, m_2)
+                    angleij = x1(i, i_1, 3 + m_1, m_2) 
+
+                    dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
+
+                    cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
+                    cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
+
+                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
+                    & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+
+                enddo
+            enddo
+        enddo
+    enddo
+
+
+    allocate(cosp1(nm1, maxval(n1), order, maxval(n1), pmax1))
+    allocate(sinp1(nm1, maxval(n1), order, maxval(n1), pmax1))
+
+    cosp1 = 0.0d0
+    sinp1 = 0.0d0
+
+    do a = 1, nm1
+        ni = n1(a)
+        do m = 1, order
+            do i = 1, ni
+                do j = 1, ni
+                    do k = 1, ni
+                        if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
+                        p =  int(x1(a,i,2,k))
+                        theta = x1(a,i,j+3,k)
+                        cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
+                            & (cos(m * theta) - cos((theta + pi) * m))*ksi31(a,i,j,k)
+                        sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
+                            & (sin(m * theta) - sin((theta + pi) * m))*ksi31(a,i,j,k)
+
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+
+    allocate(selfl21(nm1, maxval(n1)))
+
+    !$OMP PARALLEL DO PRIVATE(ni)
+    do i = 1, nm1
+        ni = n1(i)
+        do i_1 = 1, ni
+            selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), n1(i), n1(i), &
+            & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
+            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+        enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    allocate(atomic_distance(maxval(n1), maxval(n1)))
+
+    kernels(:,:,:) = 0.0d0
+    atomic_distance(:,:) = 0.0d0
+
+    !$OMP PARALLEL DO schedule(dynamic) PRIVATE(l2dist,atomic_distance,ni,nj)
+    do j = 1, nm1
+        nj = n1(j)
+        do i = j, nm1
+            ni = n1(i)
+
+            atomic_distance(:,:) = 0.0d0
+
+            do i_1 = 1, ni
+                do j_1 = 1, nj
+
+                    l2dist = atomic_distl2(x1(i,i_1,:,:), x1(j,j_1,:,:), n1(i), n1(j), &
+                        & ksi1(i,i_1,:), ksi1(j,j_1,:), sinp1(i,i_1,:,:,:), sinp1(j,j_1,:,:,:), &
+                        & cosp1(i,i_1,:,:,:), cosp1(j,j_1,:,:,:), &
+                        & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+
+                    l2dist = selfl21(i,i_1) + selfl21(j,j_1) - 2.0d0 * l2dist * pd(int(x1(i,i_1,2,1)),int(x1(j,j_1,2,1)))
+
+                    if (abs(l2dist) < eps) l2dist = 0.0d0
+
+                    atomic_distance(i_1,j_1) = l2dist
+                    
+                enddo
+            enddo
+
+            do k = 1, nsigmas
+                kernels(k, i, j) =  sum(exp(atomic_distance(:ni,:nj) * inv_sigma2(k)))
+                kernels(k, j, i) =  sum(exp(atomic_distance(:ni,:nj) * inv_sigma2(k)))
+            enddo
+
+        enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    deallocate(atomic_distance)
+    deallocate(selfl21)
+    deallocate(ksi1)
+    deallocate(ksi31)
+    deallocate(cosp1)
+    deallocate(sinp1)
+
+end subroutine fget_symmetric_kernels_aras
