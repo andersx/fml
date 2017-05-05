@@ -63,12 +63,11 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
     double precision :: temp, sin1_temp, cos1_temp
     double precision, intent(in):: ang_norm2
 
-    pmax1 = int(maxval(x1(2,:)))
-    pmax2 = int(maxval(x2(2,:)))
+    pmax1 = int(maxval(x1(2,:n1)))
+    pmax2 = int(maxval(x2(2,:n2)))
 
     allocate(mask1(pmax1))
     allocate(mask2(pmax2))
-
     mask1 = .true.
     mask2 = .true.
 
@@ -148,7 +147,8 @@ end function atomic_distl2
 end module aras_utils
 
 
-subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
+subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
+       & sigmas, nm1, nm2, nsigmas, &
        & t_width, r_width, c_width, d_width, cut_distance, order, pd, &
        & angular_scale, kernels)
 
@@ -163,6 +163,10 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     ! List of numbers of atoms in each molecule
     integer, dimension(:), intent(in) :: n1
     integer, dimension(:), intent(in) :: n2
+
+    ! Number of neighbors for each atom in each compound
+    integer, dimension(:,:), intent(in) :: nneigh1
+    integer, dimension(:,:), intent(in) :: nneigh2
 
     ! Sigma in the Gaussian kernel
     double precision, dimension(:), intent(in) :: sigmas
@@ -259,17 +263,16 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     inv_cut = pi / (2.0d0 * cut_distance)
     inv_sigma2(:) = -1.0d0 / (sigmas(:))**2
 
-    allocate(ksi1(nm1, maxval(n1), maxval(n1)))
-    allocate(ksi2(nm2, maxval(n2), maxval(n2)))
+    allocate(ksi1(nm1, maxval(n1), maxval(nneigh1)))
+    allocate(ksi2(nm2, maxval(n2), maxval(nneigh2)))
 
     ksi1 = 0.0d0
     ksi2 = 0.0d0
 
-    !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, nm1
         ni = n1(i)
-        do m_1 = 2, ni
-            do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh1(i, i_1) !ni
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
                     & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
@@ -277,13 +280,11 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
             enddo
         enddo
     enddo
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, nm2
         ni = n2(i)
-        do m_1 = 2, ni
-            do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh2(i, i_1) !ni
                 if (x2(i,i_1,1,m_1) < cut_distance) then
                     ksi2(i, i_1, m_1) = 1.0d0 / x2(i,i_1,1,m_1)**6 &
                     & * x2(i,i_1,2,1) * x2(i,i_1,2,m_1) 
@@ -291,10 +292,9 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
             enddo
         enddo
     enddo
-    !$OMP END PARALLEL DO
 
-    allocate(ksi31(nm1, maxval(n1), maxval(n1), maxval(n1)))
-    allocate(ksi32(nm2, maxval(n2), maxval(n2), maxval(n2)))
+    allocate(ksi31(nm1, maxval(n1), maxval(nneigh1), maxval(nneigh1)))
+    allocate(ksi32(nm2, maxval(n2), maxval(nneigh2), maxval(nneigh2)))
 
     ksi31 = 0.0d0
     ksi32 = 0.0d0
@@ -302,9 +302,9 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     
     do i = 1, nm1
         ni = n1(i)
-        do m_2 = 2, ni
-            do m_1 = 2, ni
-                do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh1(i, i_1) !ni
+                do m_2 = 2, nneigh1(i, i_1) !ni
 
                     if (m_2.eq.m_1) cycle 
 
@@ -328,9 +328,9 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
 
     do i = 1, nm2
         ni = n2(i)
-        do m_2 = 2, ni
-            do m_1 = 2, ni
-                do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh2(i, i_1) !ni
+                do m_2 = 2, nneigh2(i, i_1) ! ni
 
                     if (m_2.eq.m_1) cycle 
 
@@ -351,9 +351,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         enddo
     enddo
 
-
-    allocate(cosp1(nm1, maxval(n1), order, maxval(n1), pmax1))
-    allocate(sinp1(nm1, maxval(n1), order, maxval(n1), pmax1))
+    allocate(cosp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
+    allocate(sinp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
 
     cosp1 = 0.0d0
     sinp1 = 0.0d0
@@ -362,8 +361,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         ni = n1(a)
         do m = 1, order
             do i = 1, ni
-                do j = 1, ni
-                    do k = 1, ni
+                do j = 1, nneigh1(a, i) !ni
+                    do k = 1, nneigh1(a, i) !ni
                         if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
                         p =  int(x1(a,i,2,k))
                         theta = x1(a,i,j+3,k)
@@ -379,8 +378,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         enddo
     enddo
 
-    allocate(cosp2(nm2, maxval(n2), order, maxval(n2), pmax2))
-    allocate(sinp2(nm2, maxval(n2), order, maxval(n2), pmax2))
+    allocate(cosp2(nm2, maxval(n2), order, maxval(nneigh2), pmax2))
+    allocate(sinp2(nm2, maxval(n2), order, maxval(nneigh2), pmax2))
 
     cosp2 = 0.0d0
     sinp2 = 0.0d0
@@ -389,8 +388,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
         ni = n2(a)
         do m = 1, order
             do i = 1, ni
-                do j = 1, ni
-                    do k = 1, ni
+                do j = 1, nneigh2(a, i) !ni
+                    do k = 1, nneigh2(a, i) !ni
                         if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
                         p =  int(x2(a,i,2,k))
                         theta = x2(a,i,j+3,k)
@@ -412,7 +411,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     do i = 1, nm1
         ni = n1(i)
         do i_1 = 1, ni
-            selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), n1(i), n1(i), &
+            selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), nneigh1(i,i_1), nneigh1(i,i_1), &
                 & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
             & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
         enddo
@@ -423,7 +422,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
     do i = 1, nm2
         ni = n2(i)
         do i_1 = 1, ni
-            selfl22(i,i_1) = atomic_distl2(x2(i,i_1,:,:), x2(i,i_1,:,:), n2(i), n2(i), &
+            selfl22(i,i_1) = atomic_distl2(x2(i,i_1,:,:), x2(i,i_1,:,:), nneigh2(i,i_1), nneigh2(i,i_1), &
                 & ksi2(i,i_1,:), ksi2(i,i_1,:), sinp2(i,i_1,:,:,:), sinp2(i,i_1,:,:,:), cosp2(i,i_1,:,:,:), cosp2(i,i_1,:,:,:), &
             & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
         enddo
@@ -447,7 +446,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
             do i_1 = 1, ni
                 do j_1 = 1, nj
 
-                    l2dist = atomic_distl2(x1(i,i_1,:,:), x2(j,j_1,:,:), n1(i), n2(j), &
+                    l2dist = atomic_distl2(x1(i,i_1,:,:), x2(j,j_1,:,:), nneigh1(i,i_1), nneigh2(j,j_1), &
                         & ksi1(i,i_1,:), ksi2(j,j_1,:), sinp1(i,i_1,:,:,:), sinp2(j,j_1,:,:,:), &
                         & cosp1(i,i_1,:,:,:), cosp2(j,j_1,:,:,:), &
                         & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
@@ -484,7 +483,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, sigmas, nm1, nm2, nsigmas, &
 end subroutine fget_kernels_aras
 
 
-subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
+subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
        & t_width, r_width, c_width, d_width, cut_distance, order, pd, &
        & angular_scale, kernels)
 
@@ -497,6 +496,9 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
 
     ! List of numbers of atoms in each molecule
     integer, dimension(:), intent(in) :: n1
+
+    ! Number of neighbors for each atom in each compound
+    integer, dimension(:,:), intent(in) :: nneigh1
 
     ! Sigma in the Gaussian kernel
     double precision, dimension(:), intent(in) :: sigmas
@@ -563,6 +565,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
     double precision :: theta
 
     double precision :: ang_norm2
+
     ang_norm2 = 0.0d0
 
     do n = -10000, 10000
@@ -583,15 +586,14 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
     inv_cut = pi / (2.0d0 * cut_distance)
     inv_sigma2(:) = -1.0d0 / (sigmas(:))**2
 
-    allocate(ksi1(nm1, maxval(n1), maxval(n1)))
+    allocate(ksi1(nm1, maxval(n1), maxval(nneigh1)))
 
     ksi1 = 0.0d0
 
-    !$OMP PARALLEL DO PRIVATE(ni)
     do i = 1, nm1
         ni = n1(i)
-        do m_1 = 2, ni
-            do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh1(i, i_1) !ni
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
                     & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
@@ -599,18 +601,17 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
             enddo
         enddo
     enddo
-    !$OMP END PARALLEL DO
 
-    allocate(ksi31(nm1, maxval(n1), maxval(n1), maxval(n1)))
+    allocate(ksi31(nm1, maxval(n1), maxval(nneigh1), maxval(nneigh1)))
 
     ksi31 = 0.0d0
 
     
     do i = 1, nm1
         ni = n1(i)
-        do m_2 = 2, ni
-            do m_1 = 2, ni
-                do i_1 = 1, ni
+        do i_1 = 1, ni
+            do m_1 = 2, nneigh1(i, i_1) !ni
+                do m_2 = 2, nneigh1(i, i_1) !ni
 
                     if (m_2.eq.m_1) cycle 
 
@@ -632,8 +633,8 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
     enddo
 
 
-    allocate(cosp1(nm1, maxval(n1), order, maxval(n1), pmax1))
-    allocate(sinp1(nm1, maxval(n1), order, maxval(n1), pmax1))
+    allocate(cosp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
+    allocate(sinp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
 
     cosp1 = 0.0d0
     sinp1 = 0.0d0
@@ -642,8 +643,9 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
         ni = n1(a)
         do m = 1, order
             do i = 1, ni
-                do j = 1, ni
-                    do k = 1, ni
+                do j = 1, nneigh1(a, i) !ni
+                    do k = 1, nneigh1(a, i) !ni
+
                         if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
                         p =  int(x1(a,i,2,k))
                         theta = x1(a,i,j+3,k)
@@ -665,7 +667,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
     do i = 1, nm1
         ni = n1(i)
         do i_1 = 1, ni
-            selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), n1(i), n1(i), &
+            selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), nneigh1(i,i_1), nneigh1(i,i_1), &
             & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
             & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
         enddo
@@ -688,7 +690,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1,sigmas, nm1, nsigmas, &
             do i_1 = 1, ni
                 do j_1 = 1, nj
 
-                    l2dist = atomic_distl2(x1(i,i_1,:,:), x1(j,j_1,:,:), n1(i), n1(j), &
+                    l2dist = atomic_distl2(x1(i,i_1,:,:), x1(j,j_1,:,:), nneigh1(i,i_1), nneigh1(j,j_1), &
                         & ksi1(i,i_1,:), ksi1(j,j_1,:), sinp1(i,i_1,:,:,:), sinp1(j,j_1,:,:,:), &
                         & cosp1(i,i_1,:,:,:), cosp1(j,j_1,:,:,:), &
                         & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
