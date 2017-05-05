@@ -411,8 +411,8 @@ def get_atomic_kernels_gaussian(mols1, mols2, sigmas):
         nm1, nm2, nsigmas)
 
 def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
-        t_width=np.pi/1.0, d_width=0.2, cut_distance=6.0, \
-        r_width=1.0, order=2, c_width=0.5, scale_angular=0.1):
+        t_width=np.pi/1.0, d_width=0.2, cut_distance=5.0, \
+        r_width=1.0, order=1, c_width=0.5, scale_angular=0.1):
     """ Calculates the Gaussian kernel matrix K for atomic ARAS
         descriptors for a list of different sigmas.
 
@@ -431,11 +431,15 @@ def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
         K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
     """
 
-    amax = X1.shape[1]
+    print X1.shape
+    print X2.shape
 
-    assert X1.shape[3] == amax, "ERROR: Check ARAS decriptor sizes! code = 1"
-    assert X2.shape[1] == amax, "ERROR: Check ARAS decriptor sizes! code = 2"
-    assert X2.shape[3] == amax, "ERROR: Check ARAS decriptor sizes! code = 3"
+    atoms_max = X1.shape[1]
+    neighbors_max = X1.shape[3]
+
+    assert X1.shape[1] == atoms_max, "ERROR: Check ARAS decriptor sizes! code = 1"
+    assert X2.shape[1] == atoms_max, "ERROR: Check ARAS decriptor sizes! code = 2"
+    assert X2.shape[3] == neighbors_max, "ERROR: Check ARAS decriptor sizes! code = 3"
 
     nm1 = len(Z1)
     nm2 = len(Z2)
@@ -454,6 +458,23 @@ def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
     N1 = np.array(N1,dtype=np.int32)
     N2 = np.array(N2,dtype=np.int32)
 
+    neighbors1 = np.zeros((nm1, atoms_max), dtype=np.int32)
+    neighbors2 = np.zeros((nm2, atoms_max), dtype=np.int32)
+
+    for a, representation in enumerate(X1):
+        ni = N1[a]
+        for i, x in enumerate(representation[:ni]):
+            # print x[0][:30]
+            neighbors1[a,i] = len(np.where(x[0]< cut_distance)[0])
+
+    print "Neighbors1"
+    print neighbors1
+    for a, representation in enumerate(X2):
+        ni = N2[a]
+        for i, x in enumerate(representation[:ni]):
+            # print x[0][:30]
+            neighbors2[a,i] = len(np.where(x[0]< cut_distance)[0])
+
     nsigmas = len(sigmas)
    
     # 103 is max element in the PTP dictionary
@@ -461,14 +482,18 @@ def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
 
     sigmas = np.array(sigmas)
 
-    return fget_kernels_aras(X1, X2, N1, N2, sigmas, \
+
+    print "Neighbors2"
+    print neighbors2
+
+    return fget_kernels_aras(X1, X2, N1, N2, neighbors1, neighbors2, sigmas, \
                 nm1, nm2, nsigmas, t_width, r_width, \
                 c_width, d_width, cut_distance, order, pd, scale_angular)
 
     
 def get_atomic_symmetric_kernels_aras(X1, Z1, sigmas, \
-        t_width=np.pi/1.0, d_width=0.2, cut_distance=6.0, \
-        r_width=1.0, order=2, c_width=0.5, scale_angular=0.1):
+        t_width=np.pi/1.0, d_width=0.2, cut_distance=5.0, \
+        r_width=1.0, order=1, c_width=0.5, scale_angular=0.1):
     """ Calculates the Gaussian kernel matrix K for atomic ARAS
         descriptors for a list of different sigmas.
 
@@ -487,9 +512,8 @@ def get_atomic_symmetric_kernels_aras(X1, Z1, sigmas, \
         K -- The kernel matrices for each sigma (3D-array, Ns x N1 x N2)
     """
 
-    amax = X1.shape[1]
-
-    assert X1.shape[3] == amax, "ERROR: Check ARAS decriptor sizes! code = 1"
+    atoms_max = X1.shape[1]
+    neighbors_max = X1.shape[3]
 
     nm1 = len(Z1)
 
@@ -501,6 +525,13 @@ def get_atomic_symmetric_kernels_aras(X1, Z1, sigmas, \
 
     N1 = np.array(N1,dtype=np.int32)
 
+    neighbors1 = np.zeros((nm1, atoms_max), dtype=np.int32)
+
+    for a, representation in enumerate(X1):
+        ni = N1[a]
+        for i, x in enumerate(representation[:ni]):
+            neighbors1[a,i] = len(np.where(x[0]< cut_distance)[0])
+
     nsigmas = len(sigmas)
    
     # 103 is max element in the PTP dictionary
@@ -508,7 +539,7 @@ def get_atomic_symmetric_kernels_aras(X1, Z1, sigmas, \
 
     sigmas = np.array(sigmas)
 
-    return fget_symmetric_kernels_aras(X1, N1, sigmas, \
+    return fget_symmetric_kernels_aras(X1, N1, neighbors1, sigmas, \
                 nm1, nsigmas, t_width, r_width, \
                 c_width, d_width, cut_distance, order, pd, scale_angular)
 
