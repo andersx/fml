@@ -22,7 +22,8 @@
 
 from numpy import *
 import numpy as np
-from copy import copy
+from copy import deepcopy
+from pydispersion import getc6, getc6_pbc
 
 class ARAS(object):
 
@@ -71,7 +72,7 @@ class ARAS(object):
         L = len(coords)
         coords = asarray(coords)
         ocupationList = asarray(ocupationList)
-        M =  zeros((self.maxMolSize,3+self.maxAts,self.maxAts))
+        M =  zeros((self.maxMolSize,3+self.maxAts*2,self.maxAts))
 
         if cell is not None:
             coords = dot(coords,cell)
@@ -96,7 +97,19 @@ class ARAS(object):
 
         M[:,0,:] = 1E+100
 
+        C6 = getc6(coords, len(ocupationList), ocupationList)
+        C9 = np.sqrt(C6[np.newaxis]*C6[:,np.newaxis]*C6[:,:,np.newaxis])
+        # c6 = getc6_pbc(coords, len(ocupationList), ocupationList, cell)
+
+        # print "C6", C6.shape
+        # print C6
+        # print "C9", C9.shape
+        # print C9
+        # print "done"
+
         for i in range(L):
+            c6 = deepcopy(C6[i])
+            c9 = deepcopy(C9[i])
             #print '+'
             #Calculate Distance
             cD = - coords[i] + coordsExt[:]
@@ -114,18 +127,30 @@ class ARAS(object):
                 print "norm: ", D2[np.isnan(angs)]
                 print sp[np.isnan(angs)]/D2[np.isnan(angs)]
                 print "ang: ", angs[np.isnan(angs)]
+
             args = argsort(D1)
+            # print "args", args
+            # print "1", c6
+            c6 = c6[args]
+            # print "2", c6
+            c9 = c9[args,:]
+            c9 = c9[:,args]
             D1 = D1[args]
             ocExt = asarray([ocExt[l] for l in args])
             angs = angs[args,:]
             angs = angs[:,args]
+
             args = where(D1 < self.cut)[0]
             D1 = D1[args]
             ocExt = asarray([ocExt[l] for l in args])
             angs = angs[args,:]
             angs = angs[:,args]
+            c6 = c6[args]
+            c9 = c9[args,:]
+            c9 = c9[:,args]
             M[i,0,: len(D1)] = D1
             M[i,1,: len(D1)] = ocExt[:]
             M[i,3: len(D1) + 3,: len(D1)] = angs
-
+            M[i,2,: len(D1)] = c6[:]
+            M[i,3+ self.maxAts: self.maxAts + len(D1) + 3,: len(D1)] = c9[:]
         return M

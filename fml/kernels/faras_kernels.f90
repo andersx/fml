@@ -6,7 +6,7 @@ contains
 
 pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, &
     & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, &
-    & angular_scale) result(aadist)
+    & distance_scale, angular_scale) result(aadist)
 
     implicit none
 
@@ -32,6 +32,7 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
     integer, intent(in) :: order
     double precision, dimension(:,:), intent(in) :: pd
     double precision, intent(in) :: angular_scale
+    double precision, intent(in) :: distance_scale
 
     double precision :: aadist
 
@@ -131,8 +132,8 @@ pure function atomic_distl2(X1, X2, N1, N2, ksi1, ksi2, sin1, sin2, cos1, cos2, 
 
                 enddo
 
-                aadist = aadist + d * (ksi1(m_1) * ksi2(m_2) + angular &
-                & * angular_scale)
+                aadist = aadist + d * (ksi1(m_1) * ksi2(m_2) * distance_scale &
+                    & + angular * angular_scale)
 
             end if
         end do
@@ -150,13 +151,13 @@ end module aras_utils
 subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
        & sigmas, nm1, nm2, nsigmas, &
        & t_width, r_width, c_width, d_width, cut_distance, order, pd, &
-       & angular_scale, kernels)
+       & distance_scale, angular_scale, kernels)
 
     use aras_utils, only: atomic_distl2
 
     implicit none
 
-    ! ARAD descriptors for the training set, format (i,j_1,5,m_1)
+    ! ARAS descriptors for the training set, format (i,j_1,lol,m_1)
     double precision, dimension(:,:,:,:), intent(in) :: x1
     double precision, dimension(:,:,:,:), intent(in) :: x2
 
@@ -184,6 +185,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     double precision, intent(in) :: d_width 
     double precision, intent(in) :: cut_distance
     integer, intent(in) :: order
+    double precision, intent(in) :: distance_scale
     double precision, intent(in) :: angular_scale
 
     ! -1.0 / sigma^2 for use in the kernel
@@ -238,7 +240,12 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     integer :: pmax2
     double precision :: theta
 
+
     double precision :: ang_norm2
+
+    integer :: c9_start
+    c9_start = (size(x1, dim=3) - 3) / 2 + 3 
+
     ang_norm2 = 0.0d0
 
     do n = -10000, 10000
@@ -275,7 +282,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
             do m_1 = 2, nneigh1(i, i_1) !ni
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
-                    & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
+                    & * x1(i,i_1,3,m_1) 
+                    ! & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
                 endif
             enddo
         enddo
@@ -287,7 +295,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
             do m_1 = 2, nneigh2(i, i_1) !ni
                 if (x2(i,i_1,1,m_1) < cut_distance) then
                     ksi2(i, i_1, m_1) = 1.0d0 / x2(i,i_1,1,m_1)**6 &
-                    & * x2(i,i_1,2,1) * x2(i,i_1,2,m_1) 
+                    & * x2(i,i_1,3,m_1) 
+                    ! & * x2(i,i_1,2,1) * x2(i,i_1,2,m_1) 
                 endif
             enddo
         enddo
@@ -299,7 +308,8 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     ksi31 = 0.0d0
     ksi32 = 0.0d0
 
-    
+   
+
     do i = 1, nm1
         ni = n1(i)
         do i_1 = 1, ni
@@ -317,8 +327,9 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
                     cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
                     cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
 
-                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
-                    & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+                    ! ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
+                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,c9_start+m_1,m_2) * &
+                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                 enddo
             enddo
@@ -343,8 +354,9 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
                     cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
                     cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
 
-                    ksi32(i,i_1,m_1,m_2) = x2(i,i_1,2,1) * x2(i,i_1,2,m_1) * x2(i,i_1,2,m_2) * &
-                    & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+                    ! ksi32(i,i_1,m_1,m_2) = x2(i,i_1,2,1) * x2(i,i_1,2,m_1) * x2(i,i_1,2,m_2) * &
+                    ksi32(i,i_1,m_1,m_2) = x2(i,i_1,c9_start+m_1,m_2) * &
+                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                 enddo
             enddo
@@ -413,7 +425,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
         do i_1 = 1, ni
             selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), nneigh1(i,i_1), nneigh1(i,i_1), &
                 & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
-            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2,distance_scale, angular_scale)
         enddo
     enddo
     !$OMP END PARALLEL DO
@@ -424,7 +436,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
         do i_1 = 1, ni
             selfl22(i,i_1) = atomic_distl2(x2(i,i_1,:,:), x2(i,i_1,:,:), nneigh2(i,i_1), nneigh2(i,i_1), &
                 & ksi2(i,i_1,:), ksi2(i,i_1,:), sinp2(i,i_1,:,:,:), sinp2(i,i_1,:,:,:), cosp2(i,i_1,:,:,:), cosp2(i,i_1,:,:,:), &
-            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, distance_scale, angular_scale)
         enddo
     enddo
     !$OMP END PARALLEL DO
@@ -449,7 +461,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
                     l2dist = atomic_distl2(x1(i,i_1,:,:), x2(j,j_1,:,:), nneigh1(i,i_1), nneigh2(j,j_1), &
                         & ksi1(i,i_1,:), ksi2(j,j_1,:), sinp1(i,i_1,:,:,:), sinp2(j,j_1,:,:,:), &
                         & cosp1(i,i_1,:,:,:), cosp2(j,j_1,:,:,:), &
-                        & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+                        & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, distance_scale, angular_scale)
 
                     l2dist = selfl21(i,i_1) + selfl22(j,j_1) - 2.0d0 * l2dist * pd(int(x1(i,i_1,2,1)),int(x2(j,j_1,2,1)))
 
@@ -485,7 +497,7 @@ end subroutine fget_kernels_aras
 
 subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
        & t_width, r_width, c_width, d_width, cut_distance, order, pd, &
-       & angular_scale, kernels)
+       & distance_scale, angular_scale, kernels)
 
     use aras_utils, only: atomic_distl2
 
@@ -515,6 +527,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
     double precision, intent(in) :: d_width 
     double precision, intent(in) :: cut_distance
     integer, intent(in) :: order
+    double precision, intent(in) :: distance_scale
     double precision, intent(in) :: angular_scale
 
     ! -1.0 / sigma^2 for use in the kernel
@@ -566,6 +579,9 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
 
     double precision :: ang_norm2
 
+    integer :: c9_start
+    c9_start = (size(x1, dim=3) - 3) / 2 + 3 
+
     ang_norm2 = 0.0d0
 
     do n = -10000, 10000
@@ -596,7 +612,9 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
             do m_1 = 2, nneigh1(i, i_1) !ni
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
-                    & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
+                    & * x1(i,i_1,3,m_1) 
+                    ! ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
+                    ! & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
                 endif
             enddo
         enddo
@@ -624,8 +642,11 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
                     cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
                     cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
 
-                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
-                    & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+                    ! ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
+                    ! & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+
+                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,c9_start+m_1,m_2) * &
+                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                 enddo
             enddo
@@ -669,7 +690,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
         do i_1 = 1, ni
             selfl21(i,i_1) = atomic_distl2(x1(i,i_1,:,:), x1(i,i_1,:,:), nneigh1(i,i_1), nneigh1(i,i_1), &
             & ksi1(i,i_1,:), ksi1(i,i_1,:), sinp1(i,i_1,:,:,:), sinp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), cosp1(i,i_1,:,:,:), &
-            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+            & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, distance_scale, angular_scale)
         enddo
     enddo
     !$OMP END PARALLEL DO
@@ -693,7 +714,7 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
                     l2dist = atomic_distl2(x1(i,i_1,:,:), x1(j,j_1,:,:), nneigh1(i,i_1), nneigh1(j,j_1), &
                         & ksi1(i,i_1,:), ksi1(j,j_1,:), sinp1(i,i_1,:,:,:), sinp1(j,j_1,:,:,:), &
                         & cosp1(i,i_1,:,:,:), cosp1(j,j_1,:,:,:), &
-                        & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, angular_scale)
+                        & t_width, r_width, c_width, d_width, cut_distance, order, pd, ang_norm2, distance_scale, angular_scale)
 
                     l2dist = selfl21(i,i_1) + selfl21(j,j_1) - 2.0d0 * l2dist * pd(int(x1(i,i_1,2,1)),int(x1(j,j_1,2,1)))
 
