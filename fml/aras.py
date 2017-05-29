@@ -97,9 +97,14 @@ class ARAS(object):
 
         M[:,0,:] = 1E+100
 
-        C6 = getc6(coords, len(ocupationList), ocupationList)
+        C6 = None
+        
+        if cell is not None:
+            C6 = getc6_pbc(coords, len(ocupationList), ocupationList, cell)
+        else:
+            C6 = getc6(coords, len(ocupationList), ocupationList)
+
         C9 = np.sqrt(C6[np.newaxis]*C6[:,np.newaxis]*C6[:,:,np.newaxis])
-        # c6 = getc6_pbc(coords, len(ocupationList), ocupationList, cell)
 
         # print "C6", C6.shape
         # print C6

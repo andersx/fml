@@ -79,7 +79,9 @@ def periodic_distance(a, b, r_width, c_width):
     ca = PTP[int(a)][1]
     cb = PTP[int(b)][1]
 
-    return (r_width**2 * c_width**2) / ((r_width**2 + (ra - rb)**2) * (c_width**2 + (ca - cb)**2))
+    # return (r_width**2 * c_width**2) / ((r_width**2 + (ra - rb)**2) * (c_width**2 + (ca - cb)**2))
+
+    return np.exp(-(ra - rb)**2/(4 * r_width**2)-(ca - cb)**2/(4 * c_width**2))
 
 def gen_pd(emax=100, r_width=0.001, c_width=0.001):
     """ Generate stochiometric ditance matrix
@@ -412,7 +414,7 @@ def get_atomic_kernels_gaussian(mols1, mols2, sigmas):
 
 def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
         t_width=np.pi/1.0, d_width=0.2, cut_distance=5.0, \
-        r_width=1.0, order=1, c_width=0.5, scale_angular=0.1):
+        r_width=1.0, order=1, c_width=0.5, scale_distance=1.0, scale_angular=0.1):
     """ Calculates the Gaussian kernel matrix K for atomic ARAS
         descriptors for a list of different sigmas.
 
@@ -488,7 +490,7 @@ def get_atomic_kernels_aras(X1, X2, Z1, Z2, sigmas, \
 
     return fget_kernels_aras(X1, X2, N1, N2, neighbors1, neighbors2, sigmas, \
                 nm1, nm2, nsigmas, t_width, r_width, \
-                c_width, d_width, cut_distance, order, pd, distance_scale, scale_angular)
+                c_width, d_width, cut_distance, order, pd, scale_distance, scale_angular)
 
     
 def get_atomic_symmetric_kernels_aras(X1, Z1, sigmas, \
