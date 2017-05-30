@@ -219,10 +219,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     double precision, allocatable, dimension(:,:,:) :: ksi1
     double precision, allocatable, dimension(:,:,:) :: ksi2
 
-    ! Pre-computed terms
-    double precision, allocatable, dimension(:,:,:,:) :: ksi31
-    double precision, allocatable, dimension(:,:,:,:) :: ksi32
-
     double precision, allocatable, dimension(:,:,:,:,:) :: sinp1
     double precision, allocatable, dimension(:,:,:,:,:) :: sinp2
     double precision, allocatable, dimension(:,:,:,:,:) :: cosp1
@@ -238,7 +234,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     integer :: p
     integer :: pmax1
     integer :: pmax2
-    double precision :: theta
+    double precision :: theta, ksi3
 
 
     double precision :: ang_norm2
@@ -283,7 +279,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
                     & * x1(i,i_1,3,m_1) 
-                    ! & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
                 endif
             enddo
         enddo
@@ -296,69 +291,7 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
                 if (x2(i,i_1,1,m_1) < cut_distance) then
                     ksi2(i, i_1, m_1) = 1.0d0 / x2(i,i_1,1,m_1)**6 &
                     & * x2(i,i_1,3,m_1) 
-                    ! & * x2(i,i_1,2,1) * x2(i,i_1,2,m_1) 
                 endif
-            enddo
-        enddo
-    enddo
-
-    allocate(ksi31(nm1, maxval(n1), maxval(nneigh1), maxval(nneigh1)))
-    allocate(ksi32(nm2, maxval(n2), maxval(nneigh2), maxval(nneigh2)))
-
-    ksi31 = 0.0d0
-    ksi32 = 0.0d0
-
-   
-
-    do i = 1, nm1
-        ni = n1(i)
-        do i_1 = 1, ni
-            do m_1 = 2, nneigh1(i, i_1) !ni
-                do m_2 = 2, nneigh1(i, i_1) !ni
-
-                    if (m_2.eq.m_1) cycle 
-
-                    di = x1(i, i_1, 1, m_1)
-                    dj = x1(i, i_1, 1, m_2)
-                    angleij = x1(i, i_1, 3 + m_1, m_2) 
-
-                    dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
-
-                    cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
-                    cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
-
-                    ! ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
-                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,c9_start+m_1,m_2) * &
-                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
-
-                enddo
-            enddo
-        enddo
-    enddo
-
-
-    do i = 1, nm2
-        ni = n2(i)
-        do i_1 = 1, ni
-            do m_1 = 2, nneigh2(i, i_1) !ni
-                do m_2 = 2, nneigh2(i, i_1) ! ni
-
-                    if (m_2.eq.m_1) cycle 
-
-                    di = x2(i, i_1, 1, m_1)
-                    dj = x2(i, i_1, 1, m_2)
-                    angleij = x2(i, i_1, 3 + m_1, m_2) 
-
-                    dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
-
-                    cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
-                    cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
-
-                    ! ksi32(i,i_1,m_1,m_2) = x2(i,i_1,2,1) * x2(i,i_1,2,m_1) * x2(i,i_1,2,m_2) * &
-                    ksi32(i,i_1,m_1,m_2) = x2(i,i_1,c9_start+m_1,m_2) * &
-                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
-
-                enddo
             enddo
         enddo
     enddo
@@ -371,24 +304,52 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
 
     do a = 1, nm1
         ni = n1(a)
-        do m = 1, order
-            do i = 1, ni
-                do j = 1, nneigh1(a, i) !ni
-                    do k = 1, nneigh1(a, i) !ni
-                        if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
-                        p =  int(x1(a,i,2,k))
-                        theta = x1(a,i,j+3,k)
-                        cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
-                            & (cos(m * theta) - cos((theta + pi) * m))*ksi31(a,i,j,k)
-                        sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
-                            & (sin(m * theta) - sin((theta + pi) * m))*ksi31(a,i,j,k)
+
+        do i = 1, ni
+
+            do j = 1, nneigh1(a, i) !ni
+                do k = 1, nneigh1(a, i) !ni
+
+                    if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
+
+                        if (j.eq.k) then 
+                            ksi3  = 0.0d0 
+                        else 
+
+                            di = x1(a, i, 1, j)
+                            dj = x1(a, i, 1, k)
+                            angleij = x1(a, i, 3 + j, k) 
+
+                            dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
+
+                            cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
+                            cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
+
+                            ksi3 = x1(a,i,c9_start+j,k) * &
+                            & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                         endif
-                    enddo
+
+                        p =  int(x1(a,i,2,k))
+
+                        theta = x1(a,i,j+3,k)
+
+                        do m = 1, order
+
+                            cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
+                            & (cos(m * theta) - cos((theta + pi) * m))*ksi3
+
+                            sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
+                            & (sin(m * theta) - sin((theta + pi) * m))*ksi3
+
+                        enddo
+                    endif
+
                 enddo
             enddo
         enddo
     enddo
+
 
     allocate(cosp2(nm2, maxval(n2), order, maxval(nneigh2), pmax2))
     allocate(sinp2(nm2, maxval(n2), order, maxval(nneigh2), pmax2))
@@ -396,21 +357,50 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     cosp2 = 0.0d0
     sinp2 = 0.0d0
 
+
     do a = 1, nm2
         ni = n2(a)
-        do m = 1, order
-            do i = 1, ni
-                do j = 1, nneigh2(a, i) !ni
-                    do k = 1, nneigh2(a, i) !ni
-                        if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
-                        p =  int(x2(a,i,2,k))
-                        theta = x2(a,i,j+3,k)
-                        cosp2(a, i, m, j, p) = cosp2(a, i, m, j, p) + &
-                            & (cos(m * theta) - cos((theta + pi) * m)) * ksi32(a,i,j,k)
-                        sinp2(a, i, m, j, p) = sinp2(a, i, m, j, p) + &
-                            & (sin(m * theta) - sin((theta + pi) * m)) * ksi32(a,i,j,k)
+
+        do i = 1, ni
+
+            do j = 1, nneigh2(a, i) !ni
+                do k = 1, nneigh2(a, i) !ni
+
+                    if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
+
+                        if (j.eq.k) then 
+                            ksi3  = 0.0d0 
+                        else 
+
+                            di = x2(a, i, 1, j)
+                            dj = x2(a, i, 1, k)
+                            angleij = x2(a, i, 3 + j, k) 
+
+                            dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
+
+                            cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
+                            cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
+
+                            ksi3 = x2(a,i,c9_start+j,k) * &
+                            & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
+
                         endif
-                    enddo
+
+                        p =  int(x2(a,i,2,k))
+
+                        theta = x2(a,i,j+3,k)
+
+                        do m = 1, order
+
+                            cosp2(a, i, m, j, p) = cosp2(a, i, m, j, p) + &
+                            & (cos(m * theta) - cos((theta + pi) * m))*ksi3
+
+                            sinp2(a, i, m, j, p) = sinp2(a, i, m, j, p) + &
+                            & (sin(m * theta) - sin((theta + pi) * m))*ksi3
+
+                        enddo
+                    endif
+
                 enddo
             enddo
         enddo
@@ -485,8 +475,6 @@ subroutine fget_kernels_aras(x1, x2, n1, n2, nneigh1, nneigh2, &
     deallocate(selfl22)
     deallocate(ksi1)
     deallocate(ksi2)
-    deallocate(ksi31)
-    deallocate(ksi32)
     deallocate(cosp1)
     deallocate(cosp2)
     deallocate(sinp1)
@@ -560,9 +548,6 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
     ! Pre-computed terms
     double precision, allocatable, dimension(:,:,:) :: ksi1
 
-    ! Pre-computed terms
-    double precision, allocatable, dimension(:,:,:,:) :: ksi31
-
     double precision, allocatable, dimension(:,:,:,:,:) :: sinp1
     double precision, allocatable, dimension(:,:,:,:,:) :: cosp1
 
@@ -578,6 +563,8 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
     double precision :: theta
 
     double precision :: ang_norm2
+
+    double precision :: ksi3
 
     integer :: c9_start
     c9_start = (size(x1, dim=3) - 3) / 2 + 3 
@@ -613,46 +600,10 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
                 if (x1(i,i_1,1,m_1) < cut_distance) then
                     ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
                     & * x1(i,i_1,3,m_1) 
-                    ! ksi1(i, i_1, m_1) = 1.0d0 / x1(i,i_1,1,m_1)**6 &
-                    ! & * x1(i,i_1,2,1) * x1(i,i_1,2,m_1) 
                 endif
             enddo
         enddo
     enddo
-
-    allocate(ksi31(nm1, maxval(n1), maxval(nneigh1), maxval(nneigh1)))
-
-    ksi31 = 0.0d0
-
-    
-    do i = 1, nm1
-        ni = n1(i)
-        do i_1 = 1, ni
-            do m_1 = 2, nneigh1(i, i_1) !ni
-                do m_2 = 2, nneigh1(i, i_1) !ni
-
-                    if (m_2.eq.m_1) cycle 
-
-                    di = x1(i, i_1, 1, m_1)
-                    dj = x1(i, i_1, 1, m_2)
-                    angleij = x1(i, i_1, 3 + m_1, m_2) 
-
-                    dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
-
-                    cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
-                    cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
-
-                    ! ksi31(i,i_1,m_1,m_2) = x1(i,i_1,2,1) * x1(i,i_1,2,m_1) * x1(i,i_1,2,m_2) * &
-                    ! & (1.0d0 + cos(angleij) * cosi * cosj) / (di * dj * dij)**3
-
-                    ksi31(i,i_1,m_1,m_2) = x1(i,i_1,c9_start+m_1,m_2) * &
-                    & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
-
-                enddo
-            enddo
-        enddo
-    enddo
-
 
     allocate(cosp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
     allocate(sinp1(nm1, maxval(n1), order, maxval(nneigh1), pmax1))
@@ -662,21 +613,47 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
 
     do a = 1, nm1
         ni = n1(a)
-        do m = 1, order
-            do i = 1, ni
-                do j = 1, nneigh1(a, i) !ni
-                    do k = 1, nneigh1(a, i) !ni
 
-                        if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
-                        p =  int(x1(a,i,2,k))
-                        theta = x1(a,i,j+3,k)
-                        cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
-                            & (cos(m * theta) - cos((theta + pi) * m))*ksi31(a,i,j,k)
-                        sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
-                            & (sin(m * theta) - sin((theta + pi) * m))*ksi31(a,i,j,k)
+        do i = 1, ni
+
+            do j = 1, nneigh1(a, i) !ni
+                do k = 1, nneigh1(a, i) !ni
+
+                    if ((j /= k) .and. (j /= 1) .and. (k /= 1)) then
+
+                        if (j.eq.k) then 
+                            ksi3  = 0.0d0 
+                        else 
+
+                            di = x1(a, i, 1, j)
+                            dj = x1(a, i, 1, k)
+                            angleij = x1(a, i, 3 + j, k) 
+
+                            dij = sqrt(di**2 + dj**2 - 2.0d0*di*dj*cos(angleij))
+
+                            cosi = (dj**2 + dij**2 - di**2)/(2.0d0 * dj * dij)
+                            cosj = (di**2 + dij**2 - dj**2)/(2.0d0 * di * dij)
+
+                            ksi3 = x1(a,i,c9_start+j,k) * &
+                            & (1.0d0 + 3.0d0 * cos(angleij) * cosi * cosj) / (di * dj * dij)**3
 
                         endif
-                    enddo
+
+                        p =  int(x1(a,i,2,k))
+
+                        theta = x1(a,i,j+3,k)
+
+                        do m = 1, order
+
+                            cosp1(a, i, m, j, p) = cosp1(a, i, m, j, p) + &
+                            & (cos(m * theta) - cos((theta + pi) * m))*ksi3
+
+                            sinp1(a, i, m, j, p) = sinp1(a, i, m, j, p) + &
+                            & (sin(m * theta) - sin((theta + pi) * m))*ksi3
+
+                        enddo
+                    endif
+
                 enddo
             enddo
         enddo
@@ -737,7 +714,6 @@ subroutine fget_symmetric_kernels_aras(x1, n1, nneigh1, sigmas, nm1, nsigmas, &
     deallocate(atomic_distance)
     deallocate(selfl21)
     deallocate(ksi1)
-    deallocate(ksi31)
     deallocate(cosp1)
     deallocate(sinp1)
 
