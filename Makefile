@@ -8,12 +8,10 @@ OBJECTS = \
 	fml/kernels/fforce_kernels.so \
 	fml/representations/frepresentations.so
 
-# Flags for Ifort and MKL
-COMPILER_FLAGS = --fcompiler=intelem \
-	--opt='-xHost -O3 -axAVX -qopenmp -funroll-loops -qopt-prefetch' \
-	--f77flags='-I${MKLROOT}/include' --f90flags='-I${MKLROOT}/include'
-LINKER_FLAGS = -liomp5 -lpthread -lm -ldl
-MKL_LINKER_FLAGS = -L${MKLROOT}/lib/intel64 -lmkl_rt
+# Flags for GCC compilers and system BLAS/LAPACK
+COMPILER_FLAGS = --opt='-O3 -fopenmp -O3 -m64 -march=native' --f90flags=''
+LINKER_FLAGS = -lgomp -lpthread -lm -ldl
+MKL_LINKER_FLAGS = -lblas -llapack
 
 F2PY_EXEC = f2py
 
